@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Create New Order</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1B2A6B; --navy-light: #2A3F8F;
+  --accent: #4F6BF0; --accent-soft: #EEF1FE;
+  --blue-bg: #E8F0FE; --form-bg: #EAF2EA;
+  --white: #fff; --gray: #6B7280;
+  --border: #C5D3E8; --green: #10B981;
+  --orange: #F59E0B; --red: #EF4444;
+}
+body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
+.topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+.topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+.topbar-logo span { color: #7B93FF; }
+.back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.page-title { background: white; padding: 14px 20px; font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--accent); }
+.container { padding: 16px; max-width: 900px; margin: 0 auto; }
+.form-card { background: var(--form-bg); border: 1px solid #b8d4b8; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+.form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
+.field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+.field.sm { min-width: 100px; flex: 0.6; }
+.field.lg { min-width: 200px; flex: 2; }
+.field.full { min-width: 100%; flex: none; }
+.field label { font-size: 11.5px; font-weight: 600; color: #374151; }
+.field label .req { color: var(--red); }
+.field input, .field select, .field textarea { padding: 8px 10px; border: 1.5px solid #b8cfe8; border-radius: 7px; font-size: 13px; font-family: 'Inter', sans-serif; background: white; color: #111827; outline: none; transition: border-color 0.2s; }
+.field input:focus, .field select:focus { border-color: var(--accent); }
+.field textarea { resize: vertical; min-height: 60px; }
+.section-head { background: var(--navy); color: white; padding: 8px 14px; border-radius: 7px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; margin-top: 8px; }
+.products-table-wrap { overflow-x: auto; margin-bottom: 12px; }
+table.prod-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; min-width: 700px; }
+table.prod-table th { background: var(--navy); color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 9px 8px; text-align: center; }
+table.prod-table td { padding: 6px 5px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+table.prod-table tr:last-child td { border-bottom: none; }
+table.prod-table tr:nth-child(even) td { background: #f8faff; }
+.prod-table td input, .prod-table td select { width: 100%; padding: 6px 7px; border: 1.5px solid #d1d5db; border-radius: 6px; font-size: 12px; font-family: 'Inter', sans-serif; background: #fafafa; outline: none; transition: border-color 0.2s; }
+.prod-table td input:focus, .prod-table td select:focus { border-color: var(--accent); background: white; }
+.prod-table td input[readonly] { background: #f0f4f8; color: var(--gray); }
+.row-num { font-size: 12px; font-weight: 700; color: var(--gray); text-align: center; }
+.totals-section { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.actions-col { display: flex; flex-direction: column; gap: 10px; }
+.action-chip { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: white; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--navy); transition: background 0.15s, border-color 0.15s; }
+.action-chip:hover { background: var(--accent-soft); }
+.action-chip.active { border-color: var(--accent); background: var(--accent-soft); }
+.action-chip-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+.action-chip-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2; }
+.aci-gold { background: #FEF3C7; } .aci-gold svg { stroke: #D97706; }
+.aci-red { background: #FEE2E2; } .aci-red svg { stroke: var(--red); }
+.aci-blue { background: var(--accent-soft); } .aci-blue svg { stroke: var(--accent); }
+.chip-note { font-size: 11px; font-weight: 500; color: var(--gray); margin-left: auto; }
+.totals-col { background: white; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+.total-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+.total-row:last-child { border-bottom: none; }
+.total-row .lbl { color: var(--gray); }
+.total-row .val { font-weight: 600; color: #111827; background: #FEF9C3; padding: 3px 10px; border-radius: 5px; min-width: 80px; text-align: right; font-size: 13px; }
+.total-row.highlight .lbl { font-weight: 700; color: var(--navy); font-size: 14px; }
+.total-row.highlight .val { background: var(--navy); color: white; font-size: 14px; }
+.total-row.discount-row .val { background: #DCFCE7; color: #15803D; }
+.pending-bar { background: white; border: 2px solid var(--navy); border-radius: 10px; padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+.pending-bar .label { font-size: 16px; font-weight: 700; color: var(--navy); }
+.pending-bar .amount { font-size: 22px; font-weight: 900; color: var(--red); }
+.save-btn { background: var(--accent); color: white; border: none; border-radius: 10px; padding: 13px 32px; font-size: 15px; font-weight: 700; cursor: pointer; display: block; margin: 16px auto 0; transition: background 0.2s, transform 0.1s; letter-spacing: 0.5px; }
+.save-btn:hover { background: var(--navy); }
+.save-btn:active { transform: scale(0.98); }
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; animation: slideUp 0.25s ease; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+@keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; padding-bottom: 14px; border-bottom: 2px solid var(--accent-soft); }
+.modal-header h2 { font-size: 18px; font-weight: 800; color: var(--navy); }
+.modal-close { width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--border); background: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.modal-close svg { width: 16px; height: 16px; stroke: var(--gray); fill: none; stroke-width: 2; }
+.rx-section-title { font-size: 11px; font-weight: 700; color: var(--gray); text-transform: uppercase; letter-spacing: 1.5px; margin: 16px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+.rx-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.rx-table th { background: var(--navy); color: white; font-size: 11px; font-weight: 700; padding: 8px 6px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+.rx-table td { padding: 7px 4px; border-bottom: 1px solid #f3f4f6; }
+.rx-table tr:last-child td { border-bottom: none; }
+.rx-eye-label { font-size: 12px; font-weight: 700; color: var(--navy); text-align: center; white-space: nowrap; background: var(--accent-soft); padding: 6px 8px; border-radius: 6px; }
+.rx-input { width: 100%; padding: 7px 5px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 13px; text-align: center; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
+.rx-input:focus { border-color: var(--accent); }
+.rx-extra-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+.rx-extra-field { display: flex; flex-direction: column; gap: 4px; }
+.rx-extra-field label { font-size: 11.5px; font-weight: 600; color: #374151; }
+.rx-extra-field input, .rx-extra-field select, .rx-extra-field textarea { padding: 8px 10px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s; }
+.rx-extra-field input:focus, .rx-extra-field select:focus { border-color: var(--accent); }
+.rx-extra-field textarea { resize: vertical; min-height: 60px; }
+.rx-extra-field.full { grid-column: span 3; }
+.modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.btn-cancel { padding: 10px 20px; border: 1.5px solid var(--border); border-radius: 9px; background: white; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--gray); }
+.btn-save-rx { padding: 10px 24px; background: var(--navy); color: white; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
+.btn-save-rx:hover { background: var(--navy-light); }
+.success-toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; z-index: 300; animation: slideUp 0.3s ease; }
+.tax-radio-group { display: flex; gap: 16px; align-items: center; }
+.tax-radio-group label { display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; cursor: pointer; }
+@media (max-width: 600px) { .totals-section { grid-template-columns: 1fr; } .rx-extra-row { grid-template-columns: 1fr 1fr; } .rx-extra-field.full { grid-column: span 2; } }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="history.back()">← Back</button>
+</div>
+<div class="page-title">Create New Order</div>
+
+<div class="container">
+  <div class="form-card">
+    <div class="form-row">
+      <div class="field sm">
+        <label><span class="req">*</span> Branch Name</label>
+        <select id="branch">
+          <option value="">-- Select Branch --</option>
+          <option>FRALEN Main Branch</option>
+          <option>FRALEN Branch 1</option>
+          <option>FRALEN Branch 2</option>
+          <option>FRALEN Branch 3</option>
+        </select>
+      </div>
+      <div class="field"><label>Referral Code</label><input type="text" id="referral" placeholder="referral code"/></div>
+    </div>
+    <div class="form-row">
+      <div class="field sm"><label>Order No.</label><input type="text" id="order-no" placeholder="text"/></div>
+      <div class="field"><label>Date</label><input type="datetime-local" id="order-date"/></div>
+      <div class="field"><label>Delivery Date</label><input type="datetime-local" id="delivery-date"/></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Mobile No.</label><input type="tel" id="mobile" placeholder="9999999999"/></div>
+      <div class="field lg"><label>Customer Name</label><input type="text" id="cust-name" placeholder="Full name"/></div>
+      <div class="field sm"><label>Membership ID</label><input type="text" id="membership" placeholder="membership"/></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Email</label><input type="email" id="email" placeholder="email@example.com"/></div>
+      <div class="field">
+        <label>Sales Person</label>
+        <select id="salesperson">
+          <option>Admin</option><option>FAIZ</option><option>GANI</option><option>ASIF</option><option>SAHI</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Anniversary Date</label><input type="date" id="anniversary"/></div>
+      <div class="field"><label>Date of Birth</label><input type="date" id="dob"/></div>
+      <div class="field sm"><label>Age</label><input type="number" id="age" placeholder="—" readonly/></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Customer Category</label><input type="text" id="category" placeholder="e.g. Regular"/></div>
+      <div class="field">
+        <label>Gender</label>
+        <select id="gender"><option value="">-- Select --</option><option>Male</option><option>Female</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="form-row"><div class="field full"><label>Address</label><input type="text" id="address" placeholder="Full address"/></div></div>
+    <div class="form-row"><div class="field full"><label>Customer Notes</label><textarea id="notes" placeholder="Any special notes..."></textarea></div></div>
+    <div class="form-row">
+      <div class="field sm">
+        <label>Tax Rule</label>
+        <div class="tax-radio-group" style="margin-top:6px">
+          <label><input type="radio" name="tax" value="na" checked> Not Applicable</label>
+          <label><input type="radio" name="tax" value="include"> Include</label>
+          <label><input type="radio" name="tax" value="exclude"> Exclude</label>
+        </div>
+      </div>
+      <div class="field">
+        <label><span class="req">*</span> Tax Ledger</label>
+        <select id="tax-ledger"><option value="">Select Tax Ledger</option><option>GST 5%</option><option>GST 12%</option><option>GST 18%</option></select>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-head">Products</div>
+  <div class="products-table-wrap">
+    <table class="prod-table" id="prod-table">
+      <thead>
+        <tr>
+          <th style="width:32px">#</th><th style="width:90px">Label on Frame</th><th style="width:140px">Product Type</th>
+          <th style="width:150px">Product Name</th><th style="width:70px">GST %</th><th style="width:80px">Discount %</th>
+          <th style="width:90px">Price (Rs.)</th><th style="width:90px">Total (Rs.)</th>
+        </tr>
+      </thead>
+      <tbody id="prod-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="totals-section">
+    <div class="actions-col">
+      <div class="action-chip" id="chip-loyalty" onclick="window.applyLoyalty()">
+        <div class="action-chip-icon aci-gold"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        Redeem Loyalty Points<span class="chip-note" id="loyalty-note"></span>
+      </div>
+      <div class="action-chip" id="chip-coupon" onclick="window.applyCoupon()">
+        <div class="action-chip-icon aci-red"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+        Apply Discount Coupon<span class="chip-note" id="coupon-note"></span>
+      </div>
+      <div class="action-chip" id="chip-account" onclick="window.toggleCustomerAccount()">
+        <div class="action-chip-icon aci-blue"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        Allow Customer Account<span class="chip-note" id="account-note"></span>
+      </div>
+    </div>
+    <div class="totals-col">
+      <div class="total-row"><span class="lbl">Total Basic Amount : Rs</span><span class="val" id="t-basic">0.00</span></div>
+      <div class="total-row"><span class="lbl">Total GST Amount : Rs</span><span class="val" id="t-gst">0.00</span></div>
+      <div class="total-row"><span class="lbl">Total Sales : Rs</span><span class="val" id="t-sales">0.00</span></div>
+      <div class="total-row"><span class="lbl">Item Discount : Rs</span><span class="val" id="t-discount">0.00</span></div>
+      <div class="total-row discount-row"><span class="lbl">Coupon Discount : Rs</span><span class="val" id="t-coupon">0.00</span></div>
+      <div class="total-row discount-row"><span class="lbl">Loyalty Discount : Rs</span><span class="val" id="t-loyalty">0.00</span></div>
+      <div class="total-row"><span class="lbl">Round Off : Rs</span><span class="val" id="t-roundoff">0.00</span></div>
+      <div class="total-row"><span class="lbl">Payable Amount : Rs</span><span class="val" id="t-payable">0.00</span></div>
+      <div class="total-row"><span class="lbl">Payment Date</span><input type="date" id="payment-date" style="border:1px solid #e5e7eb;border-radius:6px;padding:4px 8px;font-size:12px;width:130px"/></div>
+      <div class="total-row"><span class="lbl">Customer Account : Rs</span><span class="val" id="t-cust-acc">0.00</span></div>
+      <div class="total-row"><span class="lbl">Advance Amount : Rs</span>
+        <input type="number" id="advance" placeholder="0.00" oninput="window.calcTotals()" style="border:1.5px solid #d1d5db;border-radius:6px;padding:5px 8px;font-size:13px;width:100px;text-align:right"/>
+      </div>
+      <div class="total-row highlight"><span class="lbl">Pending Amount : Rs</span><span class="val" id="t-pending">0.00</span></div>
+    </div>
+  </div>
+
+  <button class="save-btn" onclick="window.saveOrder()">💾 Save Order</button>
+</div>
+
+<div class="modal-overlay" id="rx-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>👁 Prescription Details</h2>
+      <button class="modal-close" onclick="window.closeRx()"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="rx-section-title">Distance / Reading Prescription</div>
+    <table class="rx-table">
+      <thead><tr><th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th><th>ADD</th><th>VA</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><div class="rx-eye-label">Right Eye (R)</div></td>
+          <td><input class="rx-input" id="re-sph" placeholder="0.00"/></td>
+          <td><input class="rx-input" id="re-cyl" placeholder="0.00"/></td>
+          <td><input class="rx-input" id="re-axis" placeholder="0"/></td>
+          <td><input class="rx-input" id="re-add" placeholder="0.00"/></td>
+          <td><input class="rx-input" id="re-va" placeholder="6/6"/></td>
+        </tr>
+        <tr>
+          <td><div class="rx-eye-label">Left Eye (L)</div></td>
+          <td><input class="rx-input" id="le-sph" placeholder="0.00"/></td>
+          <td><input class="rx-input" id="le-cyl" placeholder="0.00"/></td>
+          <td><input class="rx-input" id="le-axis" placeholder="0"/></td>
+          <td><input class="rx-input" id="le-add" placeholder="0.00"/></td>
+          <td><input class="rx-input" id="le-va" placeholder="6/6"/></td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="rx-extra-row">
+      <div class="rx-extra-field"><label>PD (mm)</label><input type="number" id="rx-pd" placeholder="64"/></div>
+      <div class="rx-extra-field"><label>Prescribed By</label><input type="text" id="rx-doctor" placeholder="Dr. Name"/></div>
+      <div class="rx-extra-field"><label>Prescription Date</label><input type="date" id="rx-date"/></div>
+      <div class="rx-extra-field">
+        <label>Lens Type</label>
+        <select id="rx-lens-type"><option>Single Vision</option><option>Bifocal</option><option>Progressive</option><option>Reading</option></select>
+      </div>
+      <div class="rx-extra-field">
+        <label>Coating</label>
+        <select id="rx-coating"><option>HC</option><option>ARC</option><option>Blue Block</option><option>Blue Block + ARC</option></select>
+      </div>
+      <div class="rx-extra-field">
+        <label>Frame Fitting</label>
+        <select id="rx-fitting"><option>Full Frame</option><option>Half Frame</option><option>Rimless</option></select>
+      </div>
+      <div class="rx-extra-field full"><label>Remarks</label><textarea id="rx-remarks" placeholder="Any special notes for lens..."></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="window.closeRx()">Skip</button>
+      <button class="btn-save-rx" onclick="window.saveRx()">✅ Save Prescription & Order</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast">✅ Order saved successfully!</div>
+
+<script type="module">
+import { addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+// Multi-tenant: we don't know which shop's "orders" subcollection to write
+// to until we know who's logged in. requireAuth() also bounces back to
+// index.html if the session isn't valid.
+let currentUid = null;
+requireAuth((user) => { currentUid = user.uid; });
+
+const ROWS = 10;
+const PRODUCTS = {
+  'Frame': [{ name: 'Ray-Ban RB2140', price: 3500 }, { name: 'Oakley OX8046', price: 5200 }, { name: 'Titan Frame TF01', price: 1800 }],
+  'Lens': [{ name: 'SV HC Lens', price: 800 }, { name: 'SV ARC Lens', price: 1200 }, { name: 'Progressive V2', price: 3500 }, { name: 'Bifocal KT', price: 1500 }],
+  'Sunglasses': [{ name: 'Fastrack S001', price: 1200 }, { name: 'Vincent Chase SG', price: 2400 }],
+  'Contact Lens': [{ name: 'Acuvue Moist', price: 900 }, { name: 'Air Optix', price: 1100 }],
+};
+
+const COUPONS = { 'FRALEN10': 10, 'KETO15': 15, 'WELCOME5': 5 };
+
+let hasLens = false;
+let couponPct = 0;
+let couponCode = '';
+let loyaltyDiscountAmt = 0;
+let loyaltyPointsUsed = 0;
+let allowCustomerAccount = false;
+
+const now = new Date();
+const fmt = d => d.toISOString().slice(0,16);
+const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate()+1);
+document.getElementById('order-date').value = fmt(now);
+document.getElementById('delivery-date').value = fmt(tomorrow);
+document.getElementById('payment-date').value = now.toISOString().slice(0,10);
+document.getElementById('rx-date').value = now.toISOString().slice(0,10);
+document.getElementById('order-no').value = 'ORD-' + Date.now().toString().slice(-6);
+
+document.getElementById('dob').addEventListener('change', function() {
+  const dob = new Date(this.value);
+  const age = Math.floor((new Date() - dob) / 31557600000);
+  document.getElementById('age').value = age > 0 ? age : '';
+});
+
+function buildRows() {
+  const tbody = document.getElementById('prod-tbody');
+  tbody.innerHTML = '';
+  for (let i = 1; i <= ROWS; i++) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="row-num">${i}</td>
+      <td><input type="text" placeholder="Scan/Enter" class="barcode-input" data-row="${i}"/></td>
+      <td>
+        <select class="type-select" data-row="${i}" onchange="window.onTypeChange(${i})">
+          <option value="">Select Type</option>
+          <option>Frame</option><option>Lens</option><option>Sunglasses</option><option>Contact Lens</option>
+        </select>
+      </td>
+      <td><select class="prod-select" data-row="${i}" onchange="window.onProdChange(${i})"><option value="">Select Product</option></select></td>
+      <td><input type="number" class="gst-input" data-row="${i}" placeholder="0" value="0" min="0" max="28" oninput="window.calcRow(${i})"/></td>
+      <td><input type="number" class="disc-input" data-row="${i}" placeholder="0" value="0" min="0" max="100" oninput="window.calcRow(${i})"/></td>
+      <td><input type="number" class="price-input" data-row="${i}" placeholder="0.00" value="" oninput="window.calcRow(${i})"/></td>
+      <td><input type="number" class="total-input" data-row="${i}" readonly placeholder="0.00"/></td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+function onTypeChange(row) {
+  const type = document.querySelector(`.type-select[data-row="${row}"]`).value;
+  const prodSel = document.querySelector(`.prod-select[data-row="${row}"]`);
+  prodSel.innerHTML = '<option value="">Select Product</option>';
+  if (type && PRODUCTS[type]) {
+    PRODUCTS[type].forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.price;
+      opt.textContent = p.name;
+      prodSel.appendChild(opt);
+    });
+  }
+  document.querySelector(`.price-input[data-row="${row}"]`).value = '';
+  document.querySelector(`.total-input[data-row="${row}"]`).value = '';
+  calcTotals();
+}
+
+function onProdChange(row) {
+  const prodSel = document.querySelector(`.prod-select[data-row="${row}"]`);
+  const price = parseFloat(prodSel.value) || 0;
+  document.querySelector(`.price-input[data-row="${row}"]`).value = price || '';
+  calcRow(row);
+}
+
+function calcRow(row) {
+  const price = parseFloat(document.querySelector(`.price-input[data-row="${row}"]`).value) || 0;
+  const gstPct = parseFloat(document.querySelector(`.gst-input[data-row="${row}"]`).value) || 0;
+  const discPct = parseFloat(document.querySelector(`.disc-input[data-row="${row}"]`).value) || 0;
+  const discAmt = price * discPct / 100;
+  const afterDisc = price - discAmt;
+  const gstAmt = afterDisc * gstPct / 100;
+  const total = afterDisc + gstAmt;
+  document.querySelector(`.total-input[data-row="${row}"]`).value = total > 0 ? total.toFixed(2) : '';
+  calcTotals();
+}
+
+function applyCoupon() {
+  const input = prompt('Coupon code daalo (e.g. FRALEN10, KETO15, WELCOME5):', couponCode || '');
+  if (input === null) return;
+  const code = input.trim().toUpperCase();
+  if (!code) {
+    couponPct = 0; couponCode = '';
+    document.getElementById('coupon-note').textContent = '';
+    document.getElementById('chip-coupon').classList.remove('active');
+    calcTotals();
+    return;
+  }
+  if (COUPONS[code] !== undefined) {
+    couponPct = COUPONS[code];
+    couponCode = code;
+    document.getElementById('coupon-note').textContent = `${code} (${couponPct}% off)`;
+    document.getElementById('chip-coupon').classList.add('active');
+    calcTotals();
+  } else {
+    alert('Invalid coupon code!');
+  }
+}
+
+function applyLoyalty() {
+  const input = prompt('Kitne loyalty points redeem karne hain? (1 point = ₹1)', loyaltyPointsUsed || '0');
+  if (input === null) return;
+  const pts = parseFloat(input) || 0;
+  loyaltyPointsUsed = pts > 0 ? pts : 0;
+  document.getElementById('loyalty-note').textContent = loyaltyPointsUsed > 0 ? `${loyaltyPointsUsed} pts used` : '';
+  document.getElementById('chip-loyalty').classList.toggle('active', loyaltyPointsUsed > 0);
+  calcTotals();
+}
+
+function toggleCustomerAccount() {
+  allowCustomerAccount = !allowCustomerAccount;
+  document.getElementById('chip-account').classList.toggle('active', allowCustomerAccount);
+  document.getElementById('account-note').textContent = allowCustomerAccount ? 'ON' : '';
+  calcTotals();
+}
+
+function calcTotals() {
+  let basic = 0, gstTotal = 0, itemDiscTotal = 0;
+  hasLens = false;
+  for (let i = 1; i <= ROWS; i++) {
+    const price = parseFloat(document.querySelector(`.price-input[data-row="${i}"]`).value) || 0;
+    const gstPct = parseFloat(document.querySelector(`.gst-input[data-row="${i}"]`).value) || 0;
+    const discPct = parseFloat(document.querySelector(`.disc-input[data-row="${i}"]`).value) || 0;
+    const type = document.querySelector(`.type-select[data-row="${i}"]`).value;
+    if (price > 0) {
+      const discAmt = price * discPct / 100;
+      const afterDisc = price - discAmt;
+      const gstAmt = afterDisc * gstPct / 100;
+      basic += afterDisc; gstTotal += gstAmt; itemDiscTotal += discAmt;
+    }
+    if (type === 'Lens') hasLens = true;
+  }
+  const sales = basic + gstTotal;
+  const couponAmt = sales * couponPct / 100;
+  const remainingAfterCoupon = sales - couponAmt;
+  loyaltyDiscountAmt = Math.min(loyaltyPointsUsed, remainingAfterCoupon);
+  const payableBeforeRound = sales - couponAmt - loyaltyDiscountAmt;
+  const roundOff = Math.round(payableBeforeRound) - payableBeforeRound;
+  const payable = payableBeforeRound + roundOff;
+  const advance = parseFloat(document.getElementById('advance').value) || 0;
+  const pending = payable - advance;
+
+  document.getElementById('t-basic').textContent = basic.toFixed(2);
+  document.getElementById('t-gst').textContent = gstTotal.toFixed(2);
+  document.getElementById('t-sales').textContent = sales.toFixed(2);
+  document.getElementById('t-discount').textContent = itemDiscTotal.toFixed(2);
+  document.getElementById('t-coupon').textContent = couponAmt.toFixed(2);
+  document.getElementById('t-loyalty').textContent = loyaltyDiscountAmt.toFixed(2);
+  document.getElementById('t-roundoff').textContent = roundOff.toFixed(2);
+  document.getElementById('t-payable').textContent = payable.toFixed(2);
+  document.getElementById('t-pending').textContent = pending.toFixed(2);
+  document.getElementById('t-cust-acc').textContent = allowCustomerAccount ? pending.toFixed(2) : '0.00';
+}
+
+function saveOrder() {
+  const branch = document.getElementById('branch').value;
+  const name = document.getElementById('cust-name').value.trim();
+  if (!currentUid) { alert('Login session nahi mila, dubara login karo.'); return; }
+  if (!branch) { alert('Branch select karo!'); return; }
+  if (!name) { alert('Customer name daalo!'); return; }
+  if (hasLens) {
+    document.getElementById('rx-modal').classList.add('open');
+  } else {
+    finishSave();
+  }
+}
+
+function closeRx() { document.getElementById('rx-modal').classList.remove('open'); }
+function saveRx() { closeRx(); finishSave(); }
+
+function collectProducts() {
+  const items = [];
+  for (let i = 1; i <= ROWS; i++) {
+    const type = document.querySelector(`.type-select[data-row="${i}"]`).value;
+    const prodSel = document.querySelector(`.prod-select[data-row="${i}"]`);
+    const prodName = prodSel.options[prodSel.selectedIndex]?.text || '';
+    const price = parseFloat(document.querySelector(`.price-input[data-row="${i}"]`).value) || 0;
+    const gst = parseFloat(document.querySelector(`.gst-input[data-row="${i}"]`).value) || 0;
+    const disc = parseFloat(document.querySelector(`.disc-input[data-row="${i}"]`).value) || 0;
+    const total = parseFloat(document.querySelector(`.total-input[data-row="${i}"]`).value) || 0;
+    const barcode = document.querySelector(`.barcode-input[data-row="${i}"]`).value;
+    if (price > 0) items.push({ type, name: prodName, barcode, price, gstPct: gst, discPct: disc, total });
+  }
+  return items;
+}
+
+async function finishSave() {
+  const saveBtn = document.querySelector('.save-btn');
+  saveBtn.textContent = 'Saving...';
+  saveBtn.disabled = true;
+
+  const order = {
+    orderNo: document.getElementById('order-no').value,
+    branch: document.getElementById('branch').value,
+    orderDate: document.getElementById('order-date').value,
+    deliveryDate: document.getElementById('delivery-date').value,
+    mobile: document.getElementById('mobile').value.trim(),
+    customerName: document.getElementById('cust-name').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    salesPerson: document.getElementById('salesperson').value,
+    gender: document.getElementById('gender').value,
+    address: document.getElementById('address').value.trim(),
+    notes: document.getElementById('notes').value.trim(),
+    products: collectProducts(),
+    couponCode: couponCode || null,
+    couponPct: couponPct,
+    loyaltyPointsUsed: loyaltyPointsUsed,
+    allowCustomerAccount: allowCustomerAccount,
+    totals: {
+      basic: parseFloat(document.getElementById('t-basic').textContent) || 0,
+      gst: parseFloat(document.getElementById('t-gst').textContent) || 0,
+      sales: parseFloat(document.getElementById('t-sales').textContent) || 0,
+      itemDiscount: parseFloat(document.getElementById('t-discount').textContent) || 0,
+      couponDiscount: parseFloat(document.getElementById('t-coupon').textContent) || 0,
+      loyaltyDiscount: parseFloat(document.getElementById('t-loyalty').textContent) || 0,
+      payable: parseFloat(document.getElementById('t-payable').textContent) || 0,
+      advance: parseFloat(document.getElementById('advance').value) || 0,
+      pending: parseFloat(document.getElementById('t-pending').textContent) || 0,
+    },
+    status: 'pending',
+    hasLens,
+    prescription: hasLens ? {
+      re: { sph: document.getElementById('re-sph').value, cyl: document.getElementById('re-cyl').value, axis: document.getElementById('re-axis').value, add: document.getElementById('re-add').value, va: document.getElementById('re-va').value },
+      le: { sph: document.getElementById('le-sph').value, cyl: document.getElementById('le-cyl').value, axis: document.getElementById('le-axis').value, add: document.getElementById('le-add').value, va: document.getElementById('le-va').value },
+      pd: document.getElementById('rx-pd').value,
+      doctor: document.getElementById('rx-doctor').value,
+      lensType: document.getElementById('rx-lens-type').value,
+      coating: document.getElementById('rx-coating').value,
+      fitting: document.getElementById('rx-fitting').value,
+      remarks: document.getElementById('rx-remarks').value
+    } : null,
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    // ⬇️ THE key multi-tenant change: write into users/{uid}/orders,
+    // never a global "orders" collection.
+    await addDoc(tenantCollection(currentUid, "orders"), order);
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; window.location.href = 'dashboard.html'; }, 1800);
+  } catch (err) {
+    alert('Order save fail hua: ' + err.message);
+    saveBtn.textContent = '💾 Save Order';
+    saveBtn.disabled = false;
+  }
+}
+
+window.onTypeChange = onTypeChange;
+window.onProdChange = onProdChange;
+window.calcRow = calcRow;
+window.calcTotals = calcTotals;
+window.applyCoupon = applyCoupon;
+window.applyLoyalty = applyLoyalty;
+window.toggleCustomerAccount = toggleCustomerAccount;
+window.saveOrder = saveOrder;
+window.closeRx = closeRx;
+window.saveRx = saveRx;
+
+buildRows();
+calcTotals();
+</script>
+</body>
+</html>
