@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FRALEN CRM - Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; background-color: #f0f0f0; margin: 0; padding: 0; }
+.sidebar { width: 200px; background-color: #1B2A6B; height: 100vh; position: fixed; top: 0; left: 0; color: white; padding-top: 20px; }
+.sidebar h2 { text-align: center; margin-bottom: 30px; }
+.sidebar a { display: block; color: white; text-decoration: none; padding: 12px 20px; }
+.sidebar a:hover { background-color: #2A3F8F; }
+.main { margin-left: 200px; padding: 20px; }
+.topbar { background-color: white; padding: 15px 20px; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
+.topbar h1 { font-size: 20px; margin: 0; }
+#logout-btn { background-color: #EF4444; color: white; border: none; padding: 8px 14px; border-radius: 5px; cursor: pointer; }
+.stats-row { display: flex; gap: 15px; margin-top: 20px; flex-wrap: wrap; }
+.stat-box { background-color: white; border: 1px solid #ccc; border-radius: 8px; padding: 15px 20px; flex: 1; min-width: 200px; }
+.stat-box.clickable { cursor: pointer; transition: box-shadow 0.15s; }
+.stat-box.clickable:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+.stat-box h3 { margin: 0; font-size: 22px; }
+.stat-box p { margin: 5px 0 0 0; color: gray; font-size: 13px; }
+.chart-box { background-color: white; border: 1px solid #ccc; border-radius: 8px; padding: 20px; margin-top: 20px; }
+.chart-box h3 { margin-top: 0; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; background-color: white; }
+th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
+th { background-color: #f5f5f5; }
+.cust-link { color: #4F6BF0; font-weight: bold; cursor: pointer; text-decoration: none; }
+.cust-link:hover { text-decoration: underline; }
+.badge { padding: 3px 8px; border-radius: 5px; font-size: 12px; color: white; }
+.badge-paid { background-color: #10B981; }
+.badge-pending { background-color: #F59E0B; }
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <h2>FRALEN</h2>
+  <a href="dashboard.html">Dashboard</a>
+  <a href="product-menu-sub-bar.html">Products</a>
+  <a href="#">Inventory</a>
+  <a href="purchase.html">Purchase</a>
+  <a href="customers.html">Customers</a>
+  <a href="create-order.html">Add New Sale</a>
+  <a href="sales-history.html">Sales History</a>
+  <a href="#">Reports</a>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h1>Dashboard</h1>
+    <div>
+      <span id="user-name">Admin</span>
+      <span id="shop-name" style="margin-left:10px;color:#6B7280;font-size:13px;"></span>
+      <button id="logout-btn">Logout</button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-box clickable" onclick="window.location.href='customers.html'">
+      <h3 id="stat-customers">0</h3><p>Total Customers</p>
+    </div>
+    <div class="stat-box clickable" onclick="window.location.href='sales-history.html'">
+      <h3 id="stat-today-sales">Rs. 0</h3><p id="stat-today-orders">0 orders today</p>
+    </div>
+    <div class="stat-box clickable" onclick="window.location.href='sales-history.html?status=pending'">
+      <h3 id="stat-pending-orders">0</h3><p>Pending Orders</p>
+    </div>
+    <div class="stat-box clickable" onclick="window.location.href='sales-history.html?status=pending'">
+      <h3 id="stat-balance-due">Rs. 0</h3><p>Balance Due</p>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <h3>Monthly Sales</h3>
+    <canvas id="salesChart" height="80"></canvas>
+  </div>
+
+  <table>
+    <thead>
+      <tr><th>Customer</th><th>Items</th><th>Amount</th><th>Date</th><th>Status</th></tr>
+    </thead>
+    <tbody id="recent-orders-tbody">
+      <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<script type="module">
+import { getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { auth, signOut, requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
+
+var salesChart = null;
+var currentUid = null;
+
+// requireAuth() handles the "not logged in -> back to index.html" redirect,
+// and hands us the logged-in user (this shop's owner) once ready.
+requireAuth(async function (user) {
+  currentUid = user.uid;
+  document.getElementById("user-name").textContent = (user.email || "Admin").split("@")[0];
+
+  // Show which shop this is, from users/{uid} profile.
+  try {
+    var profileSnap = await getDoc(profileDoc(currentUid));
+    if (profileSnap.exists() && profileSnap.data().shopName) {
+      document.getElementById("shop-name").textContent = "· " + profileSnap.data().shopName;
+    }
+  } catch (e) { /* profile is optional for older accounts */ }
+
+  loadDashboardData();
+});
+
+document.getElementById("logout-btn").addEventListener("click", async function () {
+  await signOut(auth);
+  window.location.href = "index.html";
+});
+
+function isToday(dateString) {
+  if (!dateString) return false;
+  var d = new Date(dateString);
+  var now = new Date();
+  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+}
+
+// NOTE: There is still no separate "customers" collection. Every customer,
+// along with their order count / spend / pending balance, is derived from
+// THIS SHOP's own "orders" subcollection: users/{uid}/orders.
+// Because it's scoped under uid, Shop A never sees Shop B's orders here.
+async function loadDashboardData() {
+  try {
+    var orderSnapshot = await getDocs(tenantCollection(currentUid, "orders"));
+
+    var todaySales = 0, todayOrders = 0, pendingOrders = 0, balanceDue = 0;
+    var allOrders = [];
+    var customerMobiles = {};
+    var monthlyTotals = {};
+
+    orderSnapshot.forEach(function (docItem) {
+      var order = docItem.data();
+      order.id = docItem.id;
+      allOrders.push(order);
+
+      var payable = (order.totals && order.totals.payable) ? order.totals.payable : 0;
+      var pending = (order.totals && order.totals.pending) ? order.totals.pending : 0;
+
+      var mobileKey = (order.mobile || "").trim();
+      if (mobileKey) customerMobiles[mobileKey] = true;
+
+      if (isToday(order.createdAt)) { todaySales += payable; todayOrders += 1; }
+      if (pending > 0) { pendingOrders += 1; balanceDue += pending; }
+
+      if (order.createdAt) {
+        var d = new Date(order.createdAt);
+        if (!isNaN(d)) {
+          var monthKey = d.getFullYear() + "-" + d.getMonth();
+          monthlyTotals[monthKey] = (monthlyTotals[monthKey] || 0) + payable;
+        }
+      }
+    });
+
+    var totalCustomers = Object.keys(customerMobiles).length;
+    document.getElementById("stat-customers").textContent = totalCustomers;
+    document.getElementById("stat-today-sales").textContent = "Rs. " + todaySales;
+    document.getElementById("stat-today-orders").textContent = todayOrders + " orders today";
+    document.getElementById("stat-pending-orders").textContent = pendingOrders;
+    document.getElementById("stat-balance-due").textContent = "Rs. " + balanceDue;
+
+    var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    var chartLabels = [], chartData = [];
+    var now = new Date();
+    for (var m = 5; m >= 0; m--) {
+      var refDate = new Date(now.getFullYear(), now.getMonth() - m, 1);
+      var key = refDate.getFullYear() + "-" + refDate.getMonth();
+      chartLabels.push(monthNames[refDate.getMonth()]);
+      chartData.push(monthlyTotals[key] || 0);
+    }
+
+    if (salesChart) salesChart.destroy();
+    salesChart = new Chart(document.getElementById('salesChart'), {
+      type: 'bar',
+      data: { labels: chartLabels, datasets: [{ label: 'Sales', data: chartData, backgroundColor: '#4F6BF0' }] },
+      options: { responsive: true }
+    });
+
+    allOrders.sort(function (a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+    var recentOrders = allOrders.slice(0, 5);
+    var tbody = document.getElementById("recent-orders-tbody");
+
+    if (recentOrders.length === 0) {
+      tbody.innerHTML = "<tr><td colspan='5' style='text-align:center;'>No orders yet</td></tr>";
+    } else {
+      var rows = "";
+      for (var i = 0; i < recentOrders.length; i++) {
+        var order = recentOrders[i];
+        var itemCount = order.products ? order.products.length : 0;
+        var amount = (order.totals && order.totals.payable) ? order.totals.payable : 0;
+        var dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "-";
+        var pending = (order.totals && order.totals.pending) ? order.totals.pending : 0;
+        var status = pending > 0 ? "Pending" : "Paid";
+        var badgeClass = pending > 0 ? "badge-pending" : "badge-paid";
+        var custName = order.customerName || "-";
+        var custMobile = order.mobile || "";
+
+        rows += "<tr>";
+        if (custMobile) {
+          rows += "<td><span class='cust-link' onclick=\"window.location.href='customer-history.html?mobile=" + encodeURIComponent(custMobile) + "'\">" + custName + "</span></td>";
+        } else {
+          rows += "<td>" + custName + "</td>";
+        }
+        rows += "<td>" + itemCount + " item(s)</td>";
+        rows += "<td>Rs. " + amount + "</td>";
+        rows += "<td>" + dateStr + "</td>";
+        rows += "<td><span class='badge " + badgeClass + "'>" + status + "</span></td>";
+        rows += "</tr>";
+      }
+      tbody.innerHTML = rows;
+    }
+  } catch (error) {
+    console.log("Error loading dashboard data: ", error);
+  }
+}
+</script>
+</body>
+</html>
