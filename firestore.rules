@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Every shop's data lives under users/{uid}/...
+    // A user can only read/write their own uid's tree — nothing else.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      match /{document=**} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Everything else is denied by default (no global "customers",
+    // "products", "orders" collections should exist anymore).
+  }
+}
