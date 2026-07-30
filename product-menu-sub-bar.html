@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Products Menu - FRALEN CRM</title>
+
+<style>
+
+*{
+  box-sizing:border-box;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  background:#eef1f6;
+  margin:0;
+  padding:0;
+}
+
+
+/* FULL WIDTH CONTAINER */
+.wrap{
+  width:100%;
+  margin:0;
+}
+
+
+/* HEADER */
+.header{
+  width:100%;
+  background:#1b2a6b;
+  padding:16px 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+
+.logo{
+  font-weight:800;
+  font-size:20px;
+  letter-spacing:1px;
+  color:white;
+}
+
+.logo .accent{
+  color:#6f8cff;
+}
+
+
+.back{
+  background:#2f3f8a;
+  color:white;
+  border:none;
+  border-radius:8px;
+  padding:8px 16px;
+  font-weight:700;
+  font-size:14px;
+  cursor:pointer;
+}
+
+
+/* TITLE */
+.section-title{
+
+  width:100%;
+  background:white;
+  padding:18px 20px 14px;
+
+  font-size:22px;
+  font-weight:800;
+
+  color:#1b2a6b;
+
+  border-bottom:3px solid #3b57e0;
+}
+
+
+
+/* PRODUCTS BUTTON */
+
+.products-toggle{
+
+  width:100%;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  background:#1b2a6b;
+
+  color:white;
+
+  border:none;
+
+  padding:14px 20px;
+
+  font-size:15px;
+
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+
+.chev{
+ transition:.2s;
+}
+
+.chev.closed{
+ transform:rotate(-90deg);
+}
+
+
+/* PRODUCT TABS */
+
+.subbar{
+
+ display:none;
+
+ gap:10px;
+
+ padding:14px;
+
+ background:#eef1f6;
+
+ overflow-x:auto;
+
+}
+
+
+.subbar.open{
+ display:flex;
+}
+
+
+
+.tab{
+
+ flex:0 0 auto;
+
+ display:flex;
+
+ align-items:center;
+
+ gap:8px;
+
+ padding:14px 18px;
+
+ border-radius:10px;
+
+ border:2px solid #c7d0e8;
+
+ background:white;
+
+ color:#1b2a6b;
+
+ font-weight:700;
+
+ cursor:pointer;
+
+ white-space:nowrap;
+
+}
+
+
+.tab.active{
+
+ background:#1b2a6b;
+
+ color:white;
+
+ border-color:#1b2a6b;
+
+}
+
+
+/* CATEGORY */
+
+.cat-row{
+
+ display:none;
+
+ gap:10px;
+
+ padding:5px 14px 14px;
+
+ background:#eef1f6;
+
+ overflow-x:auto;
+
+}
+
+
+.cat-row.open{
+
+ display:flex;
+
+}
+
+
+
+.cat-tab{
+
+ flex:0 0 auto;
+
+ padding:10px 14px;
+
+ border-radius:8px;
+
+ border:2px solid #d7deef;
+
+ background:white;
+
+ color:#3a4a8a;
+
+ font-weight:600;
+
+ cursor:pointer;
+
+ white-space:nowrap;
+
+}
+
+
+
+.cat-tab.active{
+
+ background:#3b57e0;
+
+ color:white;
+
+ border-color:#3b57e0;
+
+}
+
+
+.footer-space{
+ height:10px;
+}
+
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="wrap">
+
+
+<div class="header">
+
+<div class="logo">
+FRALEN <span class="accent">EN</span> CRM
+</div>
+
+
+<button class="back" onclick="window.location.href='dashboard.html'">
+&larr; Back
+</button>
+
+
+</div>
+
+
+
+<div class="section-title">
+Products
+</div>
+
+
+
+
+<button class="products-toggle" onclick="toggleProducts()">
+
+<span>
+PRODUCTS MENU
+</span>
+
+
+<svg class="chev" id="productsChev"
+width="18"
+height="18"
+viewBox="0 0 24 24"
+fill="none"
+stroke="white"
+stroke-width="2.5">
+
+<polyline points="6 9 12 15 18 9"/>
+
+</svg>
+
+
+</button>
+
+
+
+
+
+<div class="subbar open" id="productsSubbar">
+
+
+<button class="tab active">
+📋 Product List
+</button>
+
+
+<button class="tab" onclick="window.location.href='Add-products-under-subtile.html'">
+➕ Add Product
+</button>
+
+
+<button class="tab" onclick="toggleCategories(this)">
+🗂️ Categories
+</button>
+
+
+<button class="tab">
+🏷️ Brands
+</button>
+
+
+<button class="tab">
+📄 Product Details
+</button>
+
+
+</div>
+
+
+
+
+
+<div class="cat-row" id="categoriesRow">
+
+
+<button class="cat-tab active">
+👓 Frames
+</button>
+
+
+<button class="cat-tab">
+🔷 Lenses
+</button>
+
+
+<button class="cat-tab">
+👁️ Contact Lenses
+</button>
+
+
+<button class="cat-tab">
+🕶️ Sunglasses
+</button>
+
+
+<button class="cat-tab">
+🏷️ Accessories
+</button>
+
+
+<button class="cat-tab">
+💧 Eye Drops
+</button>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<script>
+
+
+function toggleProducts(){
+
+let bar=document.getElementById("productsSubbar");
+
+let chev=document.getElementById("productsChev");
+
+
+bar.classList.toggle("open");
+
+chev.classList.toggle("closed");
+
+
+}
+
+
+
+
+function toggleCategories(){
+
+let row=document.getElementById("categoriesRow");
+
+row.classList.toggle("open");
+
+
+}
+
+
+</script>
+
+<!-- This page shows no Firestore data of its own yet, but it's still
+     "inside the app" — bounce back to login if the session isn't valid. -->
+<script type="module">
+  import { requireAuth } from "./firebase-config.js";
+  requireAuth(() => { /* logged in, nothing else to load on this page */ });
+</script>
+
+
+</body>
+</html>
+
