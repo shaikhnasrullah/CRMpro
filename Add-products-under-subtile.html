@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Product</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: #eef1f6;
+    margin: 0;
+    padding: 24px 16px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  .panel {
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 5px;
+  }
+  .field label .req { color: #dc2626; }
+  .field input, .field select, .field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #d1d9ec;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1f2937;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none;
+    border-color: #3b57e0;
+  }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .save-btn {
+    width: 100%;
+    padding: 13px;
+    background: #d97706;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .save-btn.success { background: #16a34a; }
+
+  .status-msg { font-size: 13px; margin-top: 8px; text-align: center; }
+  .status-msg.error { color: #dc2626; }
+  .status-msg.ok { color: #16a34a; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="panel">
+    <form id="productForm">
+      <div class="field">
+        <label>Product Name <span class="req">*</span></label>
+        <input type="text" id="f_name" placeholder="e.g. Ray-Ban Aviator RB3025" required>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Category</label>
+          <select id="f_category">
+            <option>Frames</option>
+            <option>Lenses</option>
+            <option>Contact Lenses</option>
+            <option>Sunglasses</option>
+            <option>Accessories</option>
+            <option>Eye Drops</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Brand</label>
+          <input type="text" id="f_brand" placeholder="e.g. Ray-Ban">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>SKU / Barcode</label>
+          <input type="text" id="f_sku" placeholder="Optional">
+        </div>
+        <div class="field">
+          <label>Reorder Level</label>
+          <input type="number" id="f_reorder" placeholder="Low stock alert at">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Purchase Price ₹</label>
+          <input type="number" id="f_purchase" placeholder="0">
+        </div>
+        <div class="field">
+          <label>Retail Price ₹</label>
+          <input type="number" id="f_retail" placeholder="0">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Opening Stock</label>
+        <input type="number" id="f_stock" placeholder="0">
+      </div>
+
+      <div class="field">
+        <label>Notes</label>
+        <textarea id="f_notes" rows="2" placeholder="Any notes..."></textarea>
+      </div>
+
+      <button type="submit" class="save-btn" id="saveBtn">Save Product</button>
+      <div class="status-msg" id="statusMsg"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Firebase (shared config — no more placeholder keys, no more global "products") -->
+<script type="module">
+  import { serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+  // This form used to write to a global "products" collection with a
+  // placeholder Firebase config that was never filled in — it couldn't
+  // have actually saved anything before. Now it's wired to the real
+  // shared config and scoped to users/{uid}/products.
+  let currentUid = null;
+  requireAuth((user) => { currentUid = user.uid; });
+
+  document.getElementById('productForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const saveBtn = document.getElementById('saveBtn');
+    const statusMsg = document.getElementById('statusMsg');
+
+    if (!currentUid) { statusMsg.textContent = "Login session nahi mila, dubara login karo."; statusMsg.className = "status-msg error"; return; }
+
+    const name = document.getElementById('f_name').value.trim();
+    if (!name) return;
+
+    const data = {
+      name,
+      category: document.getElementById('f_category').value,
+      brand: document.getElementById('f_brand').value.trim(),
+      sku: document.getElementById('f_sku').value.trim(),
+      purchasePrice: Number(document.getElementById('f_purchase').value) || 0,
+      retailPrice: Number(document.getElementById('f_retail').value) || 0,
+      stock: Number(document.getElementById('f_stock').value) || 0,
+      reorderLevel: Number(document.getElementById('f_reorder').value) || 0,
+      notes: document.getElementById('f_notes').value.trim(),
+      createdAt: serverTimestamp()
+    };
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving...";
+    statusMsg.textContent = "";
+    statusMsg.className = "status-msg";
+
+    try {
+      await addDoc(tenantCollection(currentUid, "products"), data);
+      saveBtn.textContent = "Saved!";
+      saveBtn.classList.add('success');
+      statusMsg.textContent = "Product saved successfully.";
+      statusMsg.classList.add('ok');
+      document.getElementById('productForm').reset();
+      setTimeout(() => {
+        saveBtn.disabled = false;
+        saveBtn.textContent = "Save Product";
+        saveBtn.classList.remove('success');
+        statusMsg.textContent = "";
+      }, 1200);
+    } catch (err) {
+      console.error(err);
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Product";
+      statusMsg.textContent = "Error: " + err.message;
+      statusMsg.classList.add('error');
+    }
+  });
+</script>
+
+</body>
+</html>
