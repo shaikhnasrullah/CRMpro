@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Customers</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --white: #fff; --gray: #6B7280;
+    --border: #C5D3E8; --green: #10B981;
+    --orange: #F59E0B; --red: #EF4444;
+  }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
+
+  .topbar {
+    background: var(--navy); padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+  .topbar-logo span { color: #7B93FF; }
+  .back-btn {
+    background: rgba(255,255,255,0.15); color: white; border: none;
+    padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+
+  .page-title {
+    background: white; padding: 14px 20px;
+    font-size: 18px; font-weight: 700; color: var(--navy);
+    border-bottom: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+  .search-box {
+    padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+    font-size: 13px; font-family: 'Inter', sans-serif; width: 220px; outline: none;
+  }
+  .search-box:focus { border-color: var(--accent); }
+
+  .container { padding: 16px; max-width: 1000px; margin: 0 auto; }
+
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-card {
+    background: white; border-radius: 10px; border: 1px solid var(--border);
+    padding: 14px 18px; flex: 1; min-width: 140px;
+  }
+  .stat-card .lbl { font-size: 11.5px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .val { font-size: 22px; font-weight: 800; color: var(--navy); margin-top: 4px; }
+
+  .table-wrap {
+    background: white; border-radius: 10px; border: 1px solid var(--border);
+    overflow: hidden; overflow-x: auto;
+  }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  th {
+    background: var(--navy); color: white; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 12px; text-align: left;
+  }
+  td { padding: 10px 12px; border-bottom: 1px solid #eef1f6; font-size: 13.5px; }
+  tr.cust-row { cursor: pointer; transition: background 0.15s; }
+  tr.cust-row:hover { background: var(--accent-soft); }
+  tr:last-child td { border-bottom: none; }
+
+  .cust-name { font-weight: 700; color: var(--navy); }
+  .badge {
+    display: inline-block; padding: 2px 9px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 700;
+  }
+  .badge-green { background: #D1FAE5; color: #047857; }
+  .badge-red { background: #FEE2E2; color: #B91C1C; }
+  .badge-gray { background: #F3F4F6; color: var(--gray); }
+
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--gray); }
+  .empty-state svg { width: 44px; height: 44px; stroke: var(--gray); fill: none; stroke-width: 1.5; margin-bottom: 10px; }
+
+  .loading { text-align: center; padding: 40px; color: var(--gray); font-size: 13.5px; }
+
+  @media (max-width: 600px) {
+    .stats-row { gap: 8px; }
+    .stat-card { min-width: 100px; padding: 10px 12px; }
+    .stat-card .val { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+</div>
+
+<div class="page-title">
+  <span>Customers</span>
+  <input type="text" class="search-box" id="search" placeholder="Search name or mobile..." oninput="renderTable()"/>
+</div>
+
+<div class="container">
+  <div class="stats-row">
+    <div class="stat-card"><div class="lbl">Total Customers</div><div class="val" id="stat-total">0</div></div>
+    <div class="stat-card"><div class="lbl">Total Orders</div><div class="val" id="stat-orders">0</div></div>
+    <div class="stat-card"><div class="lbl">Total Pending (Rs)</div><div class="val" id="stat-pending">0</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table id="cust-table">
+      <thead>
+        <tr>
+          <th>Customer</th>
+          <th>Mobile</th>
+          <th>Orders</th>
+          <th>Total Spent (Rs)</th>
+          <th>Pending (Rs)</th>
+          <th>Last Order</th>
+        </tr>
+      </thead>
+      <tbody id="cust-tbody">
+        <tr><td colspan="6" class="loading">Loading customers...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script type="module">
+  import { query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+  let currentUid = null;
+  requireAuth((user) => {
+    currentUid = user.uid;
+    loadCustomers();
+  });
+
+  let customersArr = [];
+
+  // Still no separate "customers" collection — derived from THIS SHOP's
+  // own orders: users/{uid}/orders. Other shops' orders are never in
+  // this query, so their customers never show up here.
+  async function loadCustomers() {
+    const tbody = document.getElementById('cust-tbody');
+    try {
+      const q = query(tenantCollection(currentUid, "orders"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+
+      const map = {};
+      snap.forEach(docSnap => {
+        const o = docSnap.data();
+        const key = (o.mobile || 'unknown').trim() || 'unknown';
+        if (!map[key]) {
+          map[key] = {
+            mobile: key,
+            name: o.customerName || '(No name)',
+            orders: 0,
+            totalSpent: 0,
+            totalPending: 0,
+            lastOrder: o.createdAt || o.orderDate || ''
+          };
+        }
+        map[key].orders += 1;
+        map[key].totalSpent += (o.totals?.payable || 0);
+        map[key].totalPending += (o.totals?.pending || 0);
+        if ((o.createdAt || '') > (map[key].lastOrder || '')) {
+          map[key].lastOrder = o.createdAt || o.orderDate || '';
+          if (o.customerName) map[key].name = o.customerName;
+        }
+      });
+
+      customersArr = Object.values(map).sort((a, b) => (b.lastOrder || '').localeCompare(a.lastOrder || ''));
+
+      document.getElementById('stat-total').textContent = customersArr.length;
+      document.getElementById('stat-orders').textContent = snap.size;
+      const totalPending = customersArr.reduce((s, c) => s + c.totalPending, 0);
+      document.getElementById('stat-pending').textContent = totalPending.toFixed(2);
+
+      renderTable();
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="loading">Error loading customers: ${err.message}</td></tr>`;
+    }
+  }
+
+  window.renderTable = function () {
+    const searchVal = (document.getElementById('search').value || '').toLowerCase();
+    const tbody = document.getElementById('cust-tbody');
+    const filtered = customersArr.filter(c =>
+      c.name.toLowerCase().includes(searchVal) || c.mobile.toLowerCase().includes(searchVal)
+    );
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+        <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <div>No customers found</div>
+      </div></td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(c => {
+      const pendingBadge = c.totalPending > 0
+        ? `<span class="badge badge-red">Rs ${c.totalPending.toFixed(2)}</span>`
+        : `<span class="badge badge-green">Cleared</span>`;
+      const lastOrderDate = c.lastOrder ? new Date(c.lastOrder).toLocaleDateString('en-IN') : '-';
+      return `
+        <tr class="cust-row" onclick="goToHistory('${encodeURIComponent(c.mobile)}')">
+          <td class="cust-name">${c.name}</td>
+          <td>${c.mobile === 'unknown' ? '<span class="badge badge-gray">No mobile</span>' : c.mobile}</td>
+          <td>${c.orders}</td>
+          <td>Rs ${c.totalSpent.toFixed(2)}</td>
+          <td>${pendingBadge}</td>
+          <td>${lastOrderDate}</td>
+        </tr>`;
+    }).join('');
+  };
+
+  window.goToHistory = function (mobile) {
+    window.location.href = `customer-history.html?mobile=${mobile}`;
+  };
+</script>
+
+</body>
+</html>
