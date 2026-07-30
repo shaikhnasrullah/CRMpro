@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Customer Details</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --gray: #6B7280; --border: #E5E7EB;
+    --green: #10B981; --orange: #F59E0B; --red: #EF4444;
+    --bg: #F0F2FA;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: #111827; min-height: 100vh; }
+
+  /* TOPBAR */
+  .topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+  .topbar-logo span { color: #7B93FF; }
+  .back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 20px 16px; }
+
+  /* PROFILE CARD */
+  .profile-card {
+    background: white; border-radius: 14px; border: 1px solid var(--border);
+    padding: 24px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .avatar {
+    width: 64px; height: 64px; border-radius: 16px;
+    background: var(--navy); display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 900; color: white; flex-shrink: 0;
+    font-family: 'Montserrat', sans-serif;
+  }
+  .profile-info { flex: 1; min-width: 200px; }
+  .profile-name { font-size: 22px; font-weight: 800; color: var(--navy); }
+  .profile-mobile { font-size: 14px; color: var(--gray); margin-top: 3px; }
+  .profile-stats { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 12px; }
+  .pstat { text-align: center; }
+  .pstat-val { font-size: 20px; font-weight: 800; color: var(--navy); }
+  .pstat-lbl { font-size: 11px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+  .pstat-val.red { color: var(--red); }
+  .pstat-val.green { color: var(--green); }
+
+  /* PRESCRIPTION CARD */
+  .rx-card {
+    background: white; border-radius: 14px; border: 1px solid var(--border);
+    padding: 20px; margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 14px; font-weight: 700; color: var(--navy);
+    margin-bottom: 14px; padding-bottom: 10px;
+    border-bottom: 2px solid var(--accent-soft);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .card-title svg { width: 16px; height: 16px; stroke: var(--accent); fill: none; stroke-width: 2; }
+
+  .rx-table { width: 100%; border-collapse: collapse; }
+  .rx-table th { background: var(--navy); color: white; font-size: 11px; font-weight: 700; padding: 8px 12px; text-align: center; text-transform: uppercase; letter-spacing: 0.5px; }
+  .rx-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); font-size: 13px; text-align: center; }
+  .rx-table tr:last-child td { border-bottom: none; }
+  .rx-eye { font-weight: 700; color: var(--navy); background: var(--accent-soft); padding: 4px 10px; border-radius: 6px; font-size: 12px; }
+  .rx-empty { color: var(--gray); font-style: italic; font-size: 13px; text-align: center; padding: 16px; }
+
+  /* ORDERS LIST */
+  .orders-card {
+    background: white; border-radius: 14px; border: 1px solid var(--border);
+    overflow: hidden; margin-bottom: 20px;
+  }
+  .orders-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .orders-header h3 { font-size: 14px; font-weight: 700; color: var(--navy); }
+
+  .order-item {
+    border-bottom: 1px solid var(--border); padding: 16px 20px;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .order-item:last-child { border-bottom: none; }
+  .order-item:hover { background: var(--accent-soft); }
+  .order-item.expanded { background: #F8FAFF; }
+
+  .order-row1 { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .order-no { font-size: 13px; font-weight: 700; color: var(--navy); }
+  .order-date { font-size: 12px; color: var(--gray); }
+  .order-amount { font-size: 15px; font-weight: 800; color: #111827; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .b-paid { background: #ECFDF5; color: var(--green); }
+  .b-pending { background: #FEF2F2; color: var(--red); }
+
+  /* ORDER DETAIL EXPAND */
+  .order-detail { display: none; margin-top: 14px; }
+  .order-detail.show { display: block; }
+  .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 14px; }
+  .detail-item { background: var(--bg); border-radius: 8px; padding: 10px 12px; }
+  .detail-lbl { font-size: 10.5px; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .detail-val { font-size: 13px; font-weight: 600; color: #111827; margin-top: 3px; }
+
+  /* PRODUCTS TABLE */
+  table.prod-table { width: 100%; border-collapse: collapse; font-size: 12.5px; border-radius: 8px; overflow: hidden; }
+  .prod-table th { background: #374151; color: white; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .prod-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  .prod-table tr:last-child td { border-bottom: none; }
+  .prod-table tr:nth-child(even) td { background: #F9FAFB; }
+
+  /* RX IN ORDER */
+  .rx-mini { background: #EEF1FE; border-radius: 8px; padding: 10px 14px; margin-top: 10px; font-size: 12px; }
+  .rx-mini-title { font-weight: 700; color: var(--accent); margin-bottom: 6px; font-size: 12px; }
+  .rx-mini-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .rx-mini-item { display: flex; flex-direction: column; gap: 2px; }
+  .rx-mini-lbl { font-size: 10px; color: var(--gray); text-transform: uppercase; }
+  .rx-mini-val { font-size: 12.5px; font-weight: 600; color: var(--navy); }
+
+  .no-orders { text-align: center; padding: 40px; color: var(--gray); font-size: 14px; }
+  .no-orders svg { width: 40px; height: 40px; stroke: #D1D5DB; fill: none; stroke-width: 1.5; display: block; margin: 0 auto 12px; }
+
+  .loading { text-align: center; padding: 40px; color: var(--gray); }
+
+  @media (max-width: 600px) {
+    .detail-grid { grid-template-columns: 1fr 1fr; }
+    .profile-stats { gap: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="window.location.href='customers.html'">← Customers</button>
+</div>
+
+<div class="container">
+
+  <!-- PROFILE -->
+  <div class="profile-card" id="profile-card">
+    <div class="avatar" id="cust-avatar">?</div>
+    <div class="profile-info">
+      <div class="profile-name" id="cust-name">Loading...</div>
+      <div class="profile-mobile" id="cust-mobile"></div>
+      <div class="profile-stats">
+        <div class="pstat"><div class="pstat-val" id="s-orders">0</div><div class="pstat-lbl">Orders</div></div>
+        <div class="pstat"><div class="pstat-val" id="s-spent">Rs. 0</div><div class="pstat-lbl">Total Spent</div></div>
+        <div class="pstat"><div class="pstat-val red" id="s-pending">Rs. 0</div><div class="pstat-lbl">Pending</div></div>
+        <div class="pstat"><div class="pstat-val" id="s-last">—</div><div class="pstat-lbl">Last Order</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LATEST PRESCRIPTION -->
+  <div class="rx-card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/></svg>
+      Latest Prescription
+    </div>
+    <div id="rx-section"><div class="rx-empty">No prescription found in orders.</div></div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="orders-card">
+    <div class="orders-header">
+      <h3>📋 Order History</h3>
+      <span id="order-count-label" style="font-size:12px;color:var(--gray)">0 orders</span>
+    </div>
+    <div id="orders-list"><div class="loading">Loading orders...</div></div>
+  </div>
+
+</div>
+
+<script type="module">
+  import { getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+  // Get mobile from URL
+  const params = new URLSearchParams(window.location.search);
+  const mobile = decodeURIComponent(params.get('mobile') || '');
+
+  let currentUid = null;
+  requireAuth((user) => {
+    currentUid = user.uid;
+    if (!mobile) { window.location.href = "customers.html"; return; }
+    loadCustomerData();
+  });
+
+  async function loadCustomerData() {
+    try {
+      // Scoped to THIS shop's orders only — users/{uid}/orders.
+      const q = query(tenantCollection(currentUid, "orders"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+
+      // Filter orders for this customer
+      const orders = [];
+      snap.forEach(docSnap => {
+        const o = docSnap.data();
+        o.id = docSnap.id;
+        const oMobile = (o.mobile || 'unknown').trim();
+        if (oMobile === mobile || mobile === 'unknown' && !o.mobile) {
+          orders.push(o);
+        }
+      });
+
+      if (orders.length === 0) {
+        document.getElementById('cust-name').textContent = 'Customer Not Found';
+        document.getElementById('orders-list').innerHTML = '<div class="no-orders"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M9 21V9"/></svg>No orders found for this customer.</div>';
+        return;
+      }
+
+      // Profile info from most recent order
+      const latest = orders[0];
+      const name = latest.customerName || '(No name)';
+      const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+
+      document.getElementById('cust-avatar').textContent = initials;
+      document.getElementById('cust-name').textContent = name;
+      document.getElementById('cust-mobile').textContent = mobile !== 'unknown' ? '📞 ' + mobile : 'No mobile number';
+
+      // Stats
+      const totalSpent = orders.reduce((s, o) => s + (o.totals?.payable || 0), 0);
+      const totalPending = orders.reduce((s, o) => s + (o.totals?.pending || 0), 0);
+      const lastDate = latest.createdAt ? new Date(latest.createdAt).toLocaleDateString('en-PK', {day:'numeric',month:'short',year:'numeric'}) : '—';
+
+      document.getElementById('s-orders').textContent = orders.length;
+      document.getElementById('s-spent').textContent = 'Rs. ' + totalSpent.toLocaleString();
+      document.getElementById('s-pending').textContent = 'Rs. ' + totalPending.toLocaleString();
+      document.getElementById('s-last').textContent = lastDate;
+
+      // Latest prescription
+      const rxOrder = orders.find(o => o.prescription && o.hasLens);
+      const rxSection = document.getElementById('rx-section');
+      if (rxOrder && rxOrder.prescription) {
+        const rx = rxOrder.prescription;
+        rxSection.innerHTML = `
+          <table class="rx-table">
+            <thead><tr><th>Eye</th><th>SPH</th><th>CYL</th><th>AXIS</th><th>ADD</th><th>VA</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><span class="rx-eye">Right Eye</span></td>
+                <td>${rx.re?.sph || '—'}</td><td>${rx.re?.cyl || '—'}</td>
+                <td>${rx.re?.axis || '—'}</td><td>${rx.re?.add || '—'}</td>
+                <td>${rx.re?.va || '—'}</td>
+              </tr>
+              <tr>
+                <td><span class="rx-eye">Left Eye</span></td>
+                <td>${rx.le?.sph || '—'}</td><td>${rx.le?.cyl || '—'}</td>
+                <td>${rx.le?.axis || '—'}</td><td>${rx.le?.add || '—'}</td>
+                <td>${rx.le?.va || '—'}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top:10px;display:flex;gap:20px;flex-wrap:wrap;font-size:12.5px">
+            ${rx.pd ? `<span><b style="color:var(--navy)">PD:</b> ${rx.pd} mm</span>` : ''}
+            ${rx.lensType ? `<span><b style="color:var(--navy)">Lens Type:</b> ${rx.lensType}</span>` : ''}
+            ${rx.coating ? `<span><b style="color:var(--navy)">Coating:</b> ${rx.coating}</span>` : ''}
+            ${rx.doctor ? `<span><b style="color:var(--navy)">Doctor:</b> ${rx.doctor}</span>` : ''}
+          </div>`;
+      }
+
+      // Orders list
+      document.getElementById('order-count-label').textContent = orders.length + ' order' + (orders.length !== 1 ? 's' : '');
+      const listEl = document.getElementById('orders-list');
+
+      listEl.innerHTML = orders.map((o, idx) => {
+        const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-PK', {day:'numeric', month:'short', year:'numeric'}) : '—';
+        const pending = o.totals?.pending || 0;
+        const payable = o.totals?.payable || 0;
+        const products = o.products || [];
+        const statusBadge = pending > 0
+          ? `<span class="badge b-pending">Pending Rs. ${pending.toLocaleString()}</span>`
+          : `<span class="badge b-paid">Fully Paid</span>`;
+
+        const productsHTML = products.length > 0 ? `
+          <table class="prod-table">
+            <thead><tr><th>#</th><th>Product Type</th><th>Product Name</th><th>Qty</th><th>Price</th><th>Disc%</th><th>GST%</th><th>Total</th></tr></thead>
+            <tbody>
+              ${products.map((p, i) => `<tr>
+                <td>${i+1}</td>
+                <td>${p.type || '—'}</td>
+                <td>${p.name || '—'}</td>
+                <td>1</td>
+                <td>Rs. ${(p.price || 0).toLocaleString()}</td>
+                <td>${p.discPct || 0}%</td>
+                <td>${p.gstPct || 0}%</td>
+                <td style="font-weight:700">Rs. ${(p.total || 0).toLocaleString()}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>` : '<div style="color:var(--gray);font-size:13px;padding:8px 0">No product details available.</div>';
+
+        const rxHTML = (o.prescription && o.hasLens) ? `
+          <div class="rx-mini">
+            <div class="rx-mini-title">👁 Prescription (This Order)</div>
+            <div class="rx-mini-row">
+              <div class="rx-mini-item"><div class="rx-mini-lbl">R.SPH</div><div class="rx-mini-val">${o.prescription.re?.sph || '—'}</div></div>
+              <div class="rx-mini-item"><div class="rx-mini-lbl">R.CYL</div><div class="rx-mini-val">${o.prescription.re?.cyl || '—'}</div></div>
+              <div class="rx-mini-item"><div class="rx-mini-lbl">R.AXIS</div><div class="rx-mini-val">${o.prescription.re?.axis || '—'}</div></div>
+              <div class="rx-mini-item"><div class="rx-mini-lbl">L.SPH</div><div class="rx-mini-val">${o.prescription.le?.sph || '—'}</div></div>
+              <div class="rx-mini-item"><div class="rx-mini-lbl">L.CYL</div><div class="rx-mini-val">${o.prescription.le?.cyl || '—'}</div></div>
+              <div class="rx-mini-item"><div class="rx-mini-lbl">L.AXIS</div><div class="rx-mini-val">${o.prescription.le?.axis || '—'}</div></div>
+              ${o.prescription.pd ? `<div class="rx-mini-item"><div class="rx-mini-lbl">PD</div><div class="rx-mini-val">${o.prescription.pd}mm</div></div>` : ''}
+              ${o.prescription.lensType ? `<div class="rx-mini-item"><div class="rx-mini-lbl">Type</div><div class="rx-mini-val">${o.prescription.lensType}</div></div>` : ''}
+            </div>
+          </div>` : '';
+
+        return `
+          <div class="order-item" id="order-${idx}" onclick="toggleOrder(${idx})">
+            <div class="order-row1">
+              <div>
+                <div class="order-no">${o.orderNo || 'Order #' + (idx+1)}</div>
+                <div class="order-date">📅 ${dateStr} &nbsp;|&nbsp; 👤 ${o.salesPerson || 'Admin'}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="order-amount">Rs. ${payable.toLocaleString()}</div>
+                <div style="margin-top:4px">${statusBadge}</div>
+              </div>
+            </div>
+            <div class="order-detail" id="detail-${idx}">
+              <div class="detail-grid">
+                <div class="detail-item"><div class="detail-lbl">Order Date</div><div class="detail-val">${dateStr}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Delivery Date</div><div class="detail-val">${o.deliveryDate ? new Date(o.deliveryDate).toLocaleDateString('en-PK') : '—'}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Branch</div><div class="detail-val">${o.branch || '—'}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Basic Amount</div><div class="detail-val">Rs. ${(o.totals?.basic || 0).toLocaleString()}</div></div>
+                <div class="detail-item"><div class="detail-lbl">GST</div><div class="detail-val">Rs. ${(o.totals?.gst || 0).toLocaleString()}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Discount</div><div class="detail-val">Rs. ${(o.totals?.discount || 0).toLocaleString()}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Payable</div><div class="detail-val" style="color:var(--navy);font-size:15px">Rs. ${payable.toLocaleString()}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Advance Paid</div><div class="detail-val" style="color:var(--green)">Rs. ${(o.totals?.advance || 0).toLocaleString()}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Pending</div><div class="detail-val" style="color:${pending > 0 ? 'var(--red)' : 'var(--green)'}">Rs. ${pending.toLocaleString()}</div></div>
+              </div>
+              <div style="font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Products Ordered</div>
+              ${productsHTML}
+              ${rxHTML}
+              ${o.notes ? `<div style="margin-top:10px;font-size:12.5px;color:var(--gray);background:#F9FAFB;padding:8px 12px;border-radius:8px"><b>Notes:</b> ${o.notes}</div>` : ''}
+            </div>
+          </div>`;
+      }).join('');
+
+    } catch (err) {
+      document.getElementById('orders-list').innerHTML = `<div class="loading">Error: ${err.message}</div>`;
+    }
+  }
+
+  window.toggleOrder = function(idx) {
+    const detail = document.getElementById('detail-' + idx);
+    const item = document.getElementById('order-' + idx);
+    const isOpen = detail.classList.contains('show');
+    // Close all
+    document.querySelectorAll('.order-detail').forEach(d => d.classList.remove('show'));
+    document.querySelectorAll('.order-item').forEach(i => i.classList.remove('expanded'));
+    // Open clicked (toggle)
+    if (!isOpen) {
+      detail.classList.add('show');
+      item.classList.add('expanded');
+    }
+  };
+</script>
+
+</body>
+</html>
+
