@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FRALEN CRM — Purchase</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #1B2A6B; --navy-light: #2A3F8F;
+      --accent: #4F6BF0; --accent-soft: #EEF1FE;
+      --form-bg: #EAF2EA;
+      --gray: #6B7280;
+      --border: #C5D3E8; --green: #10B981;
+      --orange: #F59E0B; --red: #EF4444;
+    }
+    body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
+
+    /* TOPBAR */
+    .topbar {
+      background: var(--navy);
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+    .topbar-logo span { color: #7B93FF; }
+    .back-btn {
+      background: rgba(255,255,255,0.15); color: white; border: none;
+      padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+
+    .page-title {
+      background: white; padding: 14px 20px;
+      font-size: 18px; font-weight: 700; color: var(--navy);
+      border-bottom: 2px solid var(--accent);
+    }
+
+    /* TAB BAR */
+    .tab-bar {
+      display: flex; gap: 8px; overflow-x: auto;
+      background: white; padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab-btn {
+      flex: none; padding: 9px 16px; border-radius: 9px;
+      border: 1.5px solid var(--border); background: white;
+      font-size: 13px; font-weight: 600; color: var(--navy);
+      cursor: pointer; white-space: nowrap;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .tab-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+    .container { padding: 16px; max-width: 950px; margin: 0 auto; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* FORM CARD */
+    .form-card {
+      background: var(--form-bg);
+      border: 1px solid #b8d4b8;
+      border-radius: 10px; padding: 16px; margin-bottom: 14px;
+    }
+    .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
+    .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 140px; }
+    .field.sm { min-width: 100px; flex: 0.6; }
+    .field.lg { min-width: 200px; flex: 2; }
+    .field label { font-size: 11.5px; font-weight: 600; color: #374151; }
+    .field label .req { color: var(--red); }
+    .field input, .field select, .field textarea {
+      padding: 8px 10px; border: 1.5px solid #b8cfe8; border-radius: 7px;
+      font-size: 13px; font-family: 'Inter', sans-serif;
+      background: white; color: #111827; outline: none; transition: border-color 0.2s;
+    }
+    .field input:focus, .field select:focus { border-color: var(--accent); }
+
+    .section-head {
+      background: var(--navy); color: white; padding: 8px 14px;
+      border-radius: 7px; font-size: 12px; font-weight: 700;
+      letter-spacing: 1px; text-transform: uppercase;
+      margin-bottom: 12px; margin-top: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .add-row-btn {
+      background: rgba(255,255,255,0.18); color: white; border: none;
+      padding: 5px 12px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .add-row-btn:hover { background: rgba(255,255,255,0.3); }
+
+    .table-wrap { overflow-x: auto; margin-bottom: 12px; }
+    table.prod-table {
+      width: 100%; border-collapse: collapse;
+      background: white; border-radius: 8px; overflow: hidden;
+      min-width: 720px;
+    }
+    table.prod-table th {
+      background: var(--navy); color: white;
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; padding: 9px 8px; text-align: center;
+    }
+    table.prod-table td { padding: 6px 5px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
+    table.prod-table tr:last-child td { border-bottom: none; }
+    table.prod-table tr:nth-child(even) td { background: #f8faff; }
+    .prod-table td input, .prod-table td select, .prod-table td textarea {
+      width: 100%; padding: 6px 7px; border: 1.5px solid #d1d5db; border-radius: 6px;
+      font-size: 12px; font-family: 'Inter', sans-serif; background: #fafafa; outline: none;
+      transition: border-color 0.2s;
+    }
+    .prod-table td input:focus, .prod-table td select:focus { border-color: var(--accent); background: white; }
+    .prod-table td input[readonly] { background: #f0f4f8; color: var(--gray); }
+    .row-num { font-size: 12px; font-weight: 700; color: var(--gray); text-align: center; }
+    .del-row-btn {
+      background: #FEE2E2; color: var(--red); border: none; border-radius: 6px;
+      width: 26px; height: 26px; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .del-row-btn:hover { background: #fecaca; }
+
+    /* TOTALS */
+    .totals-col {
+      background: white; border-radius: 10px; border: 1px solid var(--border);
+      overflow: hidden; margin-left: auto; max-width: 340px;
+    }
+    .total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 9px 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px;
+    }
+    .total-row:last-child { border-bottom: none; }
+    .total-row .lbl { color: var(--gray); }
+    .total-row .val {
+      font-weight: 600; color: #111827; background: #FEF9C3; padding: 3px 10px;
+      border-radius: 5px; min-width: 80px; text-align: right; font-size: 13px;
+    }
+    .total-row.highlight .lbl { font-weight: 700; color: var(--navy); font-size: 14px; }
+    .total-row.highlight .val { background: var(--navy); color: white; font-size: 14px; }
+
+    .save-btn {
+      background: var(--accent); color: white; border: none; border-radius: 10px;
+      padding: 13px 32px; font-size: 15px; font-weight: 700; cursor: pointer;
+      display: block; margin: 16px auto 0; transition: background 0.2s, transform 0.1s; letter-spacing: 0.5px;
+    }
+    .save-btn:hover { background: var(--navy); }
+    .save-btn:active { transform: scale(0.98); }
+
+    /* HISTORY / LIST STYLES */
+    .search-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+    .search-bar input {
+      flex: 1; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 13px; font-family: 'Inter', sans-serif; outline: none;
+    }
+    .search-bar input:focus { border-color: var(--accent); }
+    .refresh-btn {
+      background: var(--navy); color: white; border: none; padding: 9px 16px;
+      border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+
+    .history-card {
+      background: white; border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px; margin-bottom: 10px;
+    }
+    .history-card .top-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+    .history-card .supplier { font-size: 14px; font-weight: 700; color: var(--navy); }
+    .history-card .meta { font-size: 11.5px; color: var(--gray); }
+    .history-card .amount { font-size: 15px; font-weight: 800; color: var(--navy); white-space: nowrap; }
+    .history-card .items-list { font-size: 12.5px; color: #374151; line-height: 1.6; }
+    .empty-state { text-align: center; padding: 40px 20px; color: var(--gray); font-size: 13px; }
+
+    .badge {
+      display: inline-block; font-size: 10.5px; font-weight: 700;
+      padding: 2px 9px; border-radius: 20px; letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .badge-return { background: #FEE2E2; color: var(--red); }
+    .badge-defect { background: #FEF3C7; color: #B45309; }
+
+    .success-toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--green); color: white; padding: 12px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+      display: none; z-index: 300; animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+
+    @media (max-width: 600px) {
+      .totals-col { max-width: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM <span id="branch-label" style="color:#7B93FF;font-size:13px;font-weight:600;letter-spacing:0;margin-left:8px"></span></div>
+  <button class="back-btn" onclick="history.back()">← Back</button>
+</div>
+
+<div class="page-title">Purchase / Set through Supplier</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="add-purchase" onclick="window.switchTab('add-purchase')">➕ Add Purchase</button>
+  <button class="tab-btn" data-tab="purchase-history" onclick="window.switchTab('purchase-history')">📜 Purchase History</button>
+  <button class="tab-btn" data-tab="return-defect" onclick="window.switchTab('return-defect')">↩ Return / Defect</button>
+  <button class="tab-btn" data-tab="return-history" onclick="window.switchTab('return-history')">🕘 History of Returns</button>
+</div>
+
+<div class="container">
+
+  <!-- ===================== TAB 1: ADD PURCHASE ===================== -->
+  <div class="tab-panel active" id="tab-add-purchase">
+    <div class="form-card">
+      <div class="form-row">
+        <div class="field lg">
+          <label><span class="req">*</span> Supplier Name</label>
+          <input type="text" id="p-supplier" placeholder="Supplier name"/>
+        </div>
+        <div class="field">
+          <label>Purchase Bill No.</label>
+          <input type="text" id="p-billno" placeholder="Bill no."/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field sm">
+          <label>Date</label>
+          <input type="date" id="p-date"/>
+        </div>
+        <div class="field">
+          <label>Notes</label>
+          <input type="text" id="p-notes" placeholder="Any notes..."/>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      Products
+      <button class="add-row-btn" onclick="window.addPurchaseRow()">+ Add Row</button>
+    </div>
+    <div class="table-wrap">
+      <table class="prod-table" id="purchase-table">
+        <thead>
+          <tr>
+            <th style="width:28px">#</th>
+            <th style="width:150px">Product</th>
+            <th style="width:170px">Description</th>
+            <th style="width:70px">Qty</th>
+            <th style="width:90px">Price</th>
+            <th style="width:100px">Retail Price</th>
+            <th style="width:90px">Total</th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="purchase-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="totals-col">
+      <div class="total-row"><span class="lbl">Total Qty</span><span class="val" id="p-total-qty">0</span></div>
+      <div class="total-row"><span class="lbl">Total Purchase Amt : Rs</span><span class="val" id="p-total-amt">0.00</span></div>
+      <div class="total-row highlight"><span class="lbl">Total Retail Value : Rs</span><span class="val" id="p-total-retail">0.00</span></div>
+    </div>
+
+    <button class="save-btn" onclick="window.savePurchase()">💾 Save Purchase</button>
+  </div>
+
+  <!-- ===================== TAB 2: PURCHASE HISTORY ===================== -->
+  <div class="tab-panel" id="tab-purchase-history">
+    <div class="search-bar">
+      <input type="text" id="ph-search" placeholder="Search by supplier or bill no..." oninput="window.renderPurchaseHistory()"/>
+      <button class="refresh-btn" onclick="window.loadPurchases()">⟳ Refresh</button>
+    </div>
+    <div id="purchase-history-list"><div class="empty-state">Loading purchase history...</div></div>
+  </div>
+
+  <!-- ===================== TAB 3: RETURN / DEFECT ===================== -->
+  <div class="tab-panel" id="tab-return-defect">
+    <div class="form-card">
+      <div class="form-row">
+        <div class="field">
+          <label><span class="req">*</span> Supplier Name</label>
+          <input type="text" id="r-supplier" placeholder="Supplier name"/>
+        </div>
+        <div class="field">
+          <label>Original Purchase Bill No.</label>
+          <input type="text" id="r-billno" placeholder="Ref. bill no."/>
+        </div>
+        <div class="field sm">
+          <label>Date</label>
+          <input type="date" id="r-date"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field lg">
+          <label><span class="req">*</span> Product</label>
+          <input type="text" id="r-product" placeholder="Product name"/>
+        </div>
+        <div class="field sm">
+          <label>Qty</label>
+          <input type="number" id="r-qty" placeholder="0" min="1"/>
+        </div>
+        <div class="field">
+          <label>Type</label>
+          <select id="r-type">
+            <option value="Return">Return</option>
+            <option value="Defect">Defect</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Amount (Rs.)</label>
+          <input type="number" id="r-amount" placeholder="0.00"/>
+        </div>
+        <div class="field lg">
+          <label>Reason / Remarks</label>
+          <input type="text" id="r-reason" placeholder="e.g. damaged frame, wrong lens power..."/>
+        </div>
+      </div>
+    </div>
+    <button class="save-btn" onclick="window.saveReturn()">💾 Save Return / Defect</button>
+  </div>
+
+  <!-- ===================== TAB 4: HISTORY OF RETURNS ===================== -->
+  <div class="tab-panel" id="tab-return-history">
+    <div class="search-bar">
+      <input type="text" id="rh-search" placeholder="Search by supplier, bill no or product..." oninput="window.renderReturnHistory()"/>
+      <button class="refresh-btn" onclick="window.loadReturns()">⟳ Refresh</button>
+    </div>
+    <div id="return-history-list"><div class="empty-state">Loading return history...</div></div>
+  </div>
+
+</div><!-- /container -->
+
+<div class="success-toast" id="toast">✅ Saved successfully!</div>
+
+<script type="module">
+  import { addDoc, getDocs, query, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
+
+  // NOTE: this page used to scope data under branches/{uid}/... — that's
+  // been unified with the rest of the app to users/{uid}/... so every
+  // page uses the exact same tenant path. If you had real purchase data
+  // already saved under "branches", see MIGRATION_GUIDE.md for how to
+  // move it across before switching this over in production.
+  let currentUser = null;
+  requireAuth(async (user) => {
+    currentUser = user;
+    try {
+      const profileSnap = await getDoc(profileDoc(user.uid));
+      const shopName = profileSnap.exists() ? (profileSnap.data().shopName || 'My Shop') : 'My Shop';
+      const label = document.getElementById('branch-label');
+      if (label) label.textContent = shopName;
+    } catch (e) { /* profile optional */ }
+  });
+
+  let purchaseRowCount = 0;
+  let allPurchases = [];
+  let allReturns = [];
+
+  const todayStr = () => new Date().toISOString().slice(0, 10);
+  document.getElementById('p-date').value = todayStr();
+  document.getElementById('r-date').value = todayStr();
+
+  /* ---------------- TAB SWITCHING ---------------- */
+  function switchTab(tabId) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tabId));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    if (tabId === 'purchase-history' && allPurchases.length === 0) loadPurchases();
+    if (tabId === 'return-history' && allReturns.length === 0) loadReturns();
+  }
+
+  /* ---------------- ADD PURCHASE TABLE ---------------- */
+  function addPurchaseRow() {
+    purchaseRowCount++;
+    const rowId = purchaseRowCount;
+    const tbody = document.getElementById('purchase-tbody');
+    const tr = document.createElement('tr');
+    tr.id = `prow-${rowId}`;
+    tr.innerHTML = `
+      <td class="row-num">${rowId}</td>
+      <td><input type="text" class="pp-product" data-row="${rowId}" placeholder="Product name"/></td>
+      <td><input type="text" class="pp-desc" data-row="${rowId}" placeholder="Description"/></td>
+      <td><input type="number" class="pp-qty" data-row="${rowId}" placeholder="0" min="0" value="1" oninput="window.calcPurchaseRow(${rowId})"/></td>
+      <td><input type="number" class="pp-price" data-row="${rowId}" placeholder="0.00" oninput="window.calcPurchaseRow(${rowId})"/></td>
+      <td><input type="number" class="pp-retail" data-row="${rowId}" placeholder="0.00" oninput="window.calcPurchaseTotals()"/></td>
+      <td><input type="number" class="pp-total" data-row="${rowId}" readonly placeholder="0.00"/></td>
+      <td><button class="del-row-btn" onclick="window.removePurchaseRow(${rowId})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function removePurchaseRow(rowId) {
+    const row = document.getElementById(`prow-${rowId}`);
+    if (row) row.remove();
+    calcPurchaseTotals();
+  }
+
+  function calcPurchaseRow(rowId) {
+    const qty   = parseFloat(document.querySelector(`.pp-qty[data-row="${rowId}"]`)?.value) || 0;
+    const price = parseFloat(document.querySelector(`.pp-price[data-row="${rowId}"]`)?.value) || 0;
+    const total = qty * price;
+    const totalInput = document.querySelector(`.pp-total[data-row="${rowId}"]`);
+    if (totalInput) totalInput.value = total > 0 ? total.toFixed(2) : '';
+    calcPurchaseTotals();
+  }
+
+  function calcPurchaseTotals() {
+    let totalQty = 0, totalAmt = 0, totalRetail = 0;
+    document.querySelectorAll('#purchase-tbody tr').forEach(tr => {
+      const rowId = tr.id.split('-')[1];
+      const qty    = parseFloat(document.querySelector(`.pp-qty[data-row="${rowId}"]`)?.value) || 0;
+      const price  = parseFloat(document.querySelector(`.pp-price[data-row="${rowId}"]`)?.value) || 0;
+      const retail = parseFloat(document.querySelector(`.pp-retail[data-row="${rowId}"]`)?.value) || 0;
+      totalQty    += qty;
+      totalAmt    += qty * price;
+      totalRetail += qty * retail;
+    });
+    document.getElementById('p-total-qty').textContent    = totalQty;
+    document.getElementById('p-total-amt').textContent    = totalAmt.toFixed(2);
+    document.getElementById('p-total-retail').textContent = totalRetail.toFixed(2);
+  }
+
+  function collectPurchaseItems() {
+    const items = [];
+    document.querySelectorAll('#purchase-tbody tr').forEach(tr => {
+      const rowId = tr.id.split('-')[1];
+      const product = document.querySelector(`.pp-product[data-row="${rowId}"]`)?.value.trim() || '';
+      const desc    = document.querySelector(`.pp-desc[data-row="${rowId}"]`)?.value.trim() || '';
+      const qty     = parseFloat(document.querySelector(`.pp-qty[data-row="${rowId}"]`)?.value) || 0;
+      const price   = parseFloat(document.querySelector(`.pp-price[data-row="${rowId}"]`)?.value) || 0;
+      const retail  = parseFloat(document.querySelector(`.pp-retail[data-row="${rowId}"]`)?.value) || 0;
+      const total   = parseFloat(document.querySelector(`.pp-total[data-row="${rowId}"]`)?.value) || 0;
+      if (product && qty > 0) items.push({ product, description: desc, qty, price, retailPrice: retail, total });
+    });
+    return items;
+  }
+
+  async function savePurchase() {
+    const supplier = document.getElementById('p-supplier').value.trim();
+    const billNo   = document.getElementById('p-billno').value.trim();
+    const date     = document.getElementById('p-date').value;
+    const notes    = document.getElementById('p-notes').value.trim();
+    const items    = collectPurchaseItems();
+
+    if (!currentUser) { alert('Login karo pehle!'); return; }
+    if (!supplier) { alert('Supplier Name daalo!'); return; }
+    if (items.length === 0) { alert('Kam se kam ek product row bharo!'); return; }
+
+    const saveBtn = document.querySelector('#tab-add-purchase .save-btn');
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+
+    const purchase = {
+      supplier, billNo, date, notes, items,
+      totalQty: parseFloat(document.getElementById('p-total-qty').textContent) || 0,
+      totalAmount: parseFloat(document.getElementById('p-total-amt').textContent) || 0,
+      totalRetail: parseFloat(document.getElementById('p-total-retail').textContent) || 0,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await addDoc(tenantCollection(currentUser.uid, "purchases"), purchase);
+      showToast('✅ Purchase saved successfully!');
+      document.getElementById('p-supplier').value = '';
+      document.getElementById('p-billno').value = '';
+      document.getElementById('p-notes').value = '';
+      document.getElementById('purchase-tbody').innerHTML = '';
+      purchaseRowCount = 0;
+      addPurchaseRow();
+      calcPurchaseTotals();
+      allPurchases = []; // force reload next time history tab opens
+    } catch (err) {
+      alert('Purchase save fail hua: ' + err.message);
+    } finally {
+      saveBtn.textContent = '💾 Save Purchase';
+      saveBtn.disabled = false;
+    }
+  }
+
+  /* ---------------- PURCHASE HISTORY ---------------- */
+  async function loadPurchases() {
+    if (!currentUser) return;
+    const listEl = document.getElementById('purchase-history-list');
+    listEl.innerHTML = '<div class="empty-state">Loading purchase history...</div>';
+    try {
+      const q = query(tenantCollection(currentUser.uid, "purchases"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      allPurchases = [];
+      snap.forEach(doc => allPurchases.push({ id: doc.id, ...doc.data() }));
+      renderPurchaseHistory();
+    } catch (err) {
+      listEl.innerHTML = `<div class="empty-state">Load fail hua: ${err.message}</div>`;
+    }
+  }
+
+  function renderPurchaseHistory() {
+    const listEl = document.getElementById('purchase-history-list');
+    const term = (document.getElementById('ph-search').value || '').toLowerCase();
+    const filtered = allPurchases.filter(p =>
+      (p.supplier || '').toLowerCase().includes(term) ||
+      (p.billNo || '').toLowerCase().includes(term)
+    );
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">Koi purchase record nahi mila.</div>';
+      return;
+    }
+    listEl.innerHTML = filtered.map(p => `
+      <div class="history-card">
+        <div class="top-row">
+          <div>
+            <div class="supplier">${escapeHtml(p.supplier || '—')}</div>
+            <div class="meta">Bill No: ${escapeHtml(p.billNo || '—')} • ${escapeHtml(p.date || '—')}</div>
+          </div>
+          <div class="amount">Rs ${(p.totalAmount || 0).toFixed(2)}</div>
+        </div>
+        <div class="items-list">
+          ${(p.items || []).map(it => `${escapeHtml(it.product)} — Qty ${it.qty} × Rs ${it.price} = Rs ${it.total.toFixed(2)}`).join('<br/>')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  /* ---------------- RETURN / DEFECT ---------------- */
+  async function saveReturn() {
+    const supplier = document.getElementById('r-supplier').value.trim();
+    const billNo   = document.getElementById('r-billno').value.trim();
+    const date     = document.getElementById('r-date').value;
+    const product  = document.getElementById('r-product').value.trim();
+    const qty      = parseFloat(document.getElementById('r-qty').value) || 0;
+    const type     = document.getElementById('r-type').value;
+    const amount   = parseFloat(document.getElementById('r-amount').value) || 0;
+    const reason   = document.getElementById('r-reason').value.trim();
+
+    if (!currentUser) { alert('Login karo pehle!'); return; }
+    if (!supplier) { alert('Supplier Name daalo!'); return; }
+    if (!product)  { alert('Product name daalo!'); return; }
+
+    const saveBtn = document.querySelector('#tab-return-defect .save-btn');
+    saveBtn.textContent = 'Saving...';
+    saveBtn.disabled = true;
+
+    const ret = { supplier, billNo, date, product, qty, type, amount, reason, createdAt: new Date().toISOString() };
+
+    try {
+      await addDoc(tenantCollection(currentUser.uid, "returns"), ret);
+      showToast('✅ Return / Defect saved!');
+      document.getElementById('r-supplier').value = '';
+      document.getElementById('r-billno').value = '';
+      document.getElementById('r-product').value = '';
+      document.getElementById('r-qty').value = '';
+      document.getElementById('r-amount').value = '';
+      document.getElementById('r-reason').value = '';
+      allReturns = [];
+    } catch (err) {
+      alert('Save fail hua: ' + err.message);
+    } finally {
+      saveBtn.textContent = '💾 Save Return / Defect';
+      saveBtn.disabled = false;
+    }
+  }
+
+  /* ---------------- HISTORY OF RETURNS ---------------- */
+  async function loadReturns() {
+    if (!currentUser) return;
+    const listEl = document.getElementById('return-history-list');
+    listEl.innerHTML = '<div class="empty-state">Loading return history...</div>';
+    try {
+      const q = query(tenantCollection(currentUser.uid, "returns"), orderBy("createdAt", "desc"));
+      const snap = await getDocs(q);
+      allReturns = [];
+      snap.forEach(doc => allReturns.push({ id: doc.id, ...doc.data() }));
+      renderReturnHistory();
+    } catch (err) {
+      listEl.innerHTML = `<div class="empty-state">Load fail hua: ${err.message}</div>`;
+    }
+  }
+
+  function renderReturnHistory() {
+    const listEl = document.getElementById('return-history-list');
+    const term = (document.getElementById('rh-search').value || '').toLowerCase();
+    const filtered = allReturns.filter(r =>
+      (r.supplier || '').toLowerCase().includes(term) ||
+      (r.billNo || '').toLowerCase().includes(term) ||
+      (r.product || '').toLowerCase().includes(term)
+    );
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div class="empty-state">Koi return/defect record nahi mila.</div>';
+      return;
+    }
+    listEl.innerHTML = filtered.map(r => `
+      <div class="history-card">
+        <div class="top-row">
+          <div>
+            <div class="supplier">${escapeHtml(r.product || '—')} <span class="badge ${r.type === 'Defect' ? 'badge-defect' : 'badge-return'}">${escapeHtml(r.type || 'Return')}</span></div>
+            <div class="meta">Supplier: ${escapeHtml(r.supplier || '—')} • Bill No: ${escapeHtml(r.billNo || '—')} • ${escapeHtml(r.date || '—')}</div>
+            ${r.reason ? `<div class="meta">Reason: ${escapeHtml(r.reason)}</div>` : ''}
+          </div>
+          <div class="amount">Qty ${r.qty || 0}${r.amount ? ` • Rs ${r.amount.toFixed(2)}` : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  /* ---------------- HELPERS ---------------- */
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2200);
+  }
+
+  // Expose functions used by inline HTML handlers (module scope isn't global scope)
+  window.switchTab = switchTab;
+  window.addPurchaseRow = addPurchaseRow;
+  window.removePurchaseRow = removePurchaseRow;
+  window.calcPurchaseRow = calcPurchaseRow;
+  window.calcPurchaseTotals = calcPurchaseTotals;
+  window.savePurchase = savePurchase;
+  window.loadPurchases = loadPurchases;
+  window.renderPurchaseHistory = renderPurchaseHistory;
+  window.saveReturn = saveReturn;
+  window.loadReturns = loadReturns;
+  window.renderReturnHistory = renderReturnHistory;
+
+  // Init
+  addPurchaseRow();
+  calcPurchaseTotals();
+</script>
+
+</body>
+</html>
