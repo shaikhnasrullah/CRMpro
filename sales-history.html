@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Sales History</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --gray: #6B7280; --border: #C5D3E8;
+    --green: #10B981; --orange: #F59E0B; --red: #EF4444;
+    --bg: #F0F2FA;
+  }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
+
+  .topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+  .topbar-logo span { color: #7B93FF; }
+  .back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .page-title { background: white; padding: 14px 20px; font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--accent); }
+
+  .tab-bar { display: flex; gap: 8px; background: white; padding: 10px 16px; border-bottom: 1px solid var(--border); }
+  .tab-btn { padding: 9px 16px; border-radius: 9px; border: 1.5px solid var(--border); background: white; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; }
+  .tab-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+  .container { padding: 16px; max-width: 1100px; margin: 0 auto; }
+
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-card { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 14px 18px; flex: 1; min-width: 140px; }
+  .stat-card .lbl { font-size: 11.5px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .val { font-size: 22px; font-weight: 800; color: var(--navy); margin-top: 4px; }
+  .stat-card .val.red { color: var(--red); }
+
+  .search-bar { display: flex; gap: 8px; margin-bottom: 14px; }
+  .search-bar input { flex: 1; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+  .search-bar input:focus { border-color: var(--accent); }
+
+  .table-wrap { background: white; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 780px; }
+  th { background: var(--navy); color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 12px; text-align: left; }
+  td { padding: 10px 12px; border-bottom: 1px solid #eef1f6; font-size: 13.5px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .cust-name { font-weight: 700; color: var(--navy); cursor: pointer; }
+  .cust-name:hover { text-decoration: underline; }
+
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
+  .badge-paid { background: #D1FAE5; color: #047857; }
+  .badge-pending { background: #FEF2F2; color: var(--red); }
+  .badge-confirmed { background: #DBEAFE; color: #1D4ED8; }
+
+  .action-btn { border: none; border-radius: 7px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; margin-right: 5px; }
+  .btn-edit { background: var(--accent-soft); color: var(--accent); }
+  .btn-edit:hover { background: #DCE4FF; }
+  .btn-confirm { background: #D1FAE5; color: #047857; }
+  .btn-confirm:hover { background: #A7F3D0; }
+
+  .empty-state, .loading { text-align: center; padding: 40px 20px; color: var(--gray); font-size: 13.5px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal h2 { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 14px; }
+  .modal .row { display: flex; justify-content: space-between; font-size: 13.5px; padding: 6px 0; border-bottom: 1px dashed #e5e7eb; }
+  .modal .row .lbl { color: var(--gray); }
+  .modal .row .val { font-weight: 700; }
+  .modal .row .val.red { color: var(--red); }
+  .modal .row .val.green { color: var(--green); }
+  .field { margin: 16px 0 6px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; }
+  .field input:focus { border-color: var(--accent); }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  .btn-cancel { padding: 9px 18px; border: 1.5px solid var(--border); border-radius: 9px; background: white; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--gray); }
+  .btn-save { padding: 9px 20px; background: var(--navy); color: white; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-save:hover { background: var(--navy-light); }
+  .modal-err { color: var(--red); font-size: 12.5px; margin-top: 8px; display: none; }
+
+  .success-toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; z-index: 300; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+</div>
+
+<div class="page-title">Sales History</div>
+
+<div class="tab-bar">
+  <button class="tab-btn" data-tab="all" onclick="window.switchTab('all')">All Orders</button>
+  <button class="tab-btn" data-tab="pending" onclick="window.switchTab('pending')">⏳ Pending Payments</button>
+</div>
+
+<div class="container">
+  <div class="stats-row">
+    <div class="stat-card"><div class="lbl">Total Orders</div><div class="val" id="stat-total">0</div></div>
+    <div class="stat-card"><div class="lbl">Pending Orders</div><div class="val red" id="stat-pending-count">0</div></div>
+    <div class="stat-card"><div class="lbl">Total Balance Due (Rs)</div><div class="val red" id="stat-pending-amt">0</div></div>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search" placeholder="Search by customer name, mobile or order no..." oninput="window.renderTable()"/>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Order No.</th><th>Customer</th><th>Date</th>
+          <th>Payable</th><th>Advance Paid</th><th>Pending</th><th>Status</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="orders-tbody"><tr><td colspan="8" class="loading">Loading orders...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- RECORD PAYMENT MODAL -->
+<div class="modal-overlay" id="pay-modal">
+  <div class="modal">
+    <h2>💰 Record Payment</h2>
+    <div class="row"><span class="lbl">Order No.</span><span class="val" id="pm-orderno">—</span></div>
+    <div class="row"><span class="lbl">Customer</span><span class="val" id="pm-customer">—</span></div>
+    <div class="row"><span class="lbl">Payable Amount</span><span class="val" id="pm-payable">Rs. 0</span></div>
+    <div class="row"><span class="lbl">Already Paid</span><span class="val green" id="pm-paid">Rs. 0</span></div>
+    <div class="row"><span class="lbl">Balance Due</span><span class="val red" id="pm-due">Rs. 0</span></div>
+    <div class="field">
+      <label>Amount Received Now (Rs.)</label>
+      <input type="number" id="pm-amount" placeholder="e.g. 500" min="0" step="0.01"/>
+    </div>
+    <div class="modal-err" id="pm-err">Please enter a valid amount.</div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="window.closePayModal()">Cancel</button>
+      <button class="btn-save" onclick="window.savePayment()">Save Payment</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast">✅ Updated!</div>
+
+<script type="module">
+import { getDocs, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+let currentUid = null;
+let allOrders = [];
+let activeTab = 'all';
+let currentPayOrder = null; // order object currently open in the payment modal
+
+// If dashboard linked here with ?status=pending, land straight on that tab.
+const params = new URLSearchParams(window.location.search);
+if (params.get('status') === 'pending') activeTab = 'pending';
+
+requireAuth((user) => {
+  currentUid = user.uid;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
+  loadOrders();
+});
+
+async function loadOrders() {
+  const tbody = document.getElementById('orders-tbody');
+  try {
+    // Scoped to THIS shop's own orders — users/{uid}/orders.
+    const snap = await getDocs(tenantCollection(currentUid, "orders"));
+    allOrders = [];
+    snap.forEach(docSnap => {
+      const o = docSnap.data();
+      o.id = docSnap.id;
+      allOrders.push(o);
+    });
+    allOrders.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+    updateStats();
+    renderTable();
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="8" class="loading">Error loading orders: ${err.message}</td></tr>`;
+  }
+}
+
+function updateStats() {
+  const pendingOrders = allOrders.filter(o => (o.totals?.pending || 0) > 0);
+  document.getElementById('stat-total').textContent = allOrders.length;
+  document.getElementById('stat-pending-count').textContent = pendingOrders.length;
+  const totalDue = pendingOrders.reduce((s, o) => s + (o.totals?.pending || 0), 0);
+  document.getElementById('stat-pending-amt').textContent = totalDue.toFixed(2);
+}
+
+window.switchTab = function (tab) {
+  activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  renderTable();
+};
+
+window.renderTable = function () {
+  const term = (document.getElementById('search').value || '').toLowerCase();
+  const tbody = document.getElementById('orders-tbody');
+
+  let list = allOrders;
+  if (activeTab === 'pending') list = list.filter(o => (o.totals?.pending || 0) > 0);
+  if (term) {
+    list = list.filter(o =>
+      (o.customerName || '').toLowerCase().includes(term) ||
+      (o.mobile || '').toLowerCase().includes(term) ||
+      (o.orderNo || '').toLowerCase().includes(term)
+    );
+  }
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${activeTab === 'pending' ? 'No pending payments 🎉' : 'No orders found'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(o => {
+    const payable = o.totals?.payable || 0;
+    const advance = o.totals?.advance || 0;
+    const pending = o.totals?.pending || 0;
+    const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN') : '-';
+
+    let statusBadge;
+    if (o.status === 'confirmed') statusBadge = `<span class="badge badge-confirmed">Confirmed</span>`;
+    else if (pending > 0) statusBadge = `<span class="badge badge-pending">Pending</span>`;
+    else statusBadge = `<span class="badge badge-paid">Paid</span>`;
+
+    let actions = '';
+    if (pending > 0) {
+      actions += `<button class="action-btn btn-edit" onclick="window.openPayModal('${o.id}')">✏️ Edit / Add Payment</button>`;
+    }
+    if (pending <= 0 && o.status !== 'confirmed') {
+      actions += `<button class="action-btn btn-confirm" onclick="window.confirmOrder('${o.id}')">✅ Confirm Order</button>`;
+    }
+    if (!actions) actions = '<span style="color:var(--gray);font-size:12px">—</span>';
+
+    return `
+      <tr>
+        <td>${o.orderNo || '-'}</td>
+        <td><span class="cust-name" onclick="window.location.href='customer-history.html?mobile=${encodeURIComponent(o.mobile || 'unknown')}'">${o.customerName || '-'}</span></td>
+        <td>${dateStr}</td>
+        <td>Rs. ${payable.toFixed(2)}</td>
+        <td>Rs. ${advance.toFixed(2)}</td>
+        <td style="color:${pending > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700">Rs. ${pending.toFixed(2)}</td>
+        <td>${statusBadge}</td>
+        <td>${actions}</td>
+      </tr>`;
+  }).join('');
+};
+
+// ---------- RECORD PAYMENT ----------
+window.openPayModal = function (orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  currentPayOrder = order;
+
+  document.getElementById('pm-orderno').textContent = order.orderNo || '-';
+  document.getElementById('pm-customer').textContent = order.customerName || '-';
+  document.getElementById('pm-payable').textContent = 'Rs. ' + (order.totals?.payable || 0).toFixed(2);
+  document.getElementById('pm-paid').textContent = 'Rs. ' + (order.totals?.advance || 0).toFixed(2);
+  document.getElementById('pm-due').textContent = 'Rs. ' + (order.totals?.pending || 0).toFixed(2);
+  document.getElementById('pm-amount').value = '';
+  document.getElementById('pm-err').style.display = 'none';
+  document.getElementById('pay-modal').classList.add('open');
+};
+
+window.closePayModal = function () {
+  document.getElementById('pay-modal').classList.remove('open');
+  currentPayOrder = null;
+};
+
+window.savePayment = async function () {
+  if (!currentPayOrder || !currentUid) return;
+  const amountInput = document.getElementById('pm-amount');
+  const amount = parseFloat(amountInput.value);
+  const err = document.getElementById('pm-err');
+
+  const currentPending = currentPayOrder.totals?.pending || 0;
+  if (!amount || amount <= 0 || amount > currentPending + 0.01) {
+    err.textContent = amount > currentPending
+      ? `Balance due se zyada amount nahi daal sakte (max Rs. ${currentPending.toFixed(2)}).`
+      : 'Sahi amount daalo.';
+    err.style.display = 'block';
+    return;
+  }
+
+  const newAdvance = (currentPayOrder.totals?.advance || 0) + amount;
+  const newPending = Math.max(0, (currentPayOrder.totals?.payable || 0) - newAdvance);
+
+  try {
+    // Update just this shop's order — users/{uid}/orders/{orderId}.
+    const orderRef = doc(tenantCollection(currentUid, "orders"), currentPayOrder.id);
+    await updateDoc(orderRef, {
+      "totals.advance": newAdvance,
+      "totals.pending": newPending,
+      payments: arrayUnion({ amount, date: new Date().toISOString() })
+    });
+
+    // Reflect the change locally without a full re-fetch.
+    currentPayOrder.totals.advance = newAdvance;
+    currentPayOrder.totals.pending = newPending;
+
+    window.closePayModal();
+    showToast(newPending === 0 ? '✅ Fully paid! Ab "Confirm Order" dabao.' : '✅ Payment record ho gaya.');
+    updateStats();
+    renderTable();
+  } catch (e) {
+    err.textContent = 'Save fail hua: ' + e.message;
+    err.style.display = 'block';
+  }
+};
+
+// ---------- CONFIRM ORDER ----------
+window.confirmOrder = async function (orderId) {
+  if (!currentUid) return;
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  if ((order.totals?.pending || 0) > 0) {
+    alert('Pehle pending balance clear karo, phir order confirm hoga.');
+    return;
+  }
+  try {
+    const orderRef = doc(tenantCollection(currentUid, "orders"), orderId);
+    await updateDoc(orderRef, { status: 'confirmed', confirmedAt: new Date().toISOString() });
+    order.status = 'confirmed';
+    showToast('✅ Order confirmed!');
+    updateStats();
+    renderTable();
+  } catch (e) {
+    alert('Confirm fail hua: ' + e.message);
+  }
+};
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 2200);
+}
+</script>
+
+</body>
+</html>
+
