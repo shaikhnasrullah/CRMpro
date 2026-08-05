@@ -67,6 +67,10 @@
 <body>
 
 <div class="wrap">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <h2 id="page-heading" style="color:#1b2a6b;font-size:18px;font-weight:800">Add Product</h2>
+    <button type="button" onclick="window.location.href='product-menu-sub-bar.html'" style="background:#eef1f6;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:13px;color:#1b2a6b;cursor:pointer">← Product List</button>
+  </div>
   <div class="panel">
     <form id="productForm">
       <div class="field">
@@ -132,7 +136,7 @@
 
 <!-- Firebase (shared config — no more placeholder keys, no more global "products") -->
 <script type="module">
-  import { serverTimestamp, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { serverTimestamp, addDoc, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { requireAuth, tenantCollection } from "./firebase-config.js";
 
   // This form used to write to a global "products" collection with a
@@ -140,7 +144,37 @@
   // have actually saved anything before. Now it's wired to the real
   // shared config and scoped to users/{uid}/products.
   let currentUid = null;
-  requireAuth((user) => { currentUid = user.uid; });
+
+  // Edit mode: product-menu-sub-bar.html links here as
+  // Add-products-under-subtile.html?id=<productId> when "Edit" is clicked.
+  const params = new URLSearchParams(window.location.search);
+  const editId = params.get('id');
+
+  requireAuth(async (user) => {
+    currentUid = user.uid;
+    if (editId) await loadForEdit();
+  });
+
+  async function loadForEdit() {
+    document.getElementById('page-heading').textContent = 'Edit Product';
+    document.getElementById('saveBtn').textContent = 'Update Product';
+    try {
+      const snap = await getDoc(doc(tenantCollection(currentUid, "products"), editId));
+      if (!snap.exists()) { alert('Product nahi mila, shayad delete ho chuka hai.'); window.location.href = 'product-menu-sub-bar.html'; return; }
+      const p = snap.data();
+      document.getElementById('f_name').value = p.name || '';
+      document.getElementById('f_category').value = p.category || 'Frames';
+      document.getElementById('f_brand').value = p.brand || '';
+      document.getElementById('f_sku').value = p.sku || '';
+      document.getElementById('f_reorder').value = p.reorderLevel || '';
+      document.getElementById('f_purchase').value = p.purchasePrice || '';
+      document.getElementById('f_retail').value = p.retailPrice || '';
+      document.getElementById('f_stock').value = p.stock || '';
+      document.getElementById('f_notes').value = p.notes || '';
+    } catch (err) {
+      alert('Product load karne mein error: ' + err.message);
+    }
+  }
 
   document.getElementById('productForm').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -162,31 +196,31 @@
       stock: Number(document.getElementById('f_stock').value) || 0,
       reorderLevel: Number(document.getElementById('f_reorder').value) || 0,
       notes: document.getElementById('f_notes').value.trim(),
-      createdAt: serverTimestamp()
     };
+    if (!editId) data.createdAt = serverTimestamp();
 
     saveBtn.disabled = true;
-    saveBtn.textContent = "Saving...";
+    saveBtn.textContent = editId ? "Updating..." : "Saving...";
     statusMsg.textContent = "";
     statusMsg.className = "status-msg";
 
     try {
-      await addDoc(tenantCollection(currentUid, "products"), data);
+      if (editId) {
+        await updateDoc(doc(tenantCollection(currentUid, "products"), editId), data);
+      } else {
+        await addDoc(tenantCollection(currentUid, "products"), data);
+      }
       saveBtn.textContent = "Saved!";
       saveBtn.classList.add('success');
-      statusMsg.textContent = "Product saved successfully.";
+      statusMsg.textContent = editId ? "Product updated successfully." : "Product saved successfully.";
       statusMsg.classList.add('ok');
-      document.getElementById('productForm').reset();
       setTimeout(() => {
-        saveBtn.disabled = false;
-        saveBtn.textContent = "Save Product";
-        saveBtn.classList.remove('success');
-        statusMsg.textContent = "";
-      }, 1200);
+        window.location.href = 'product-menu-sub-bar.html';
+      }, 900);
     } catch (err) {
       console.error(err);
       saveBtn.disabled = false;
-      saveBtn.textContent = "Save Product";
+      saveBtn.textContent = editId ? "Update Product" : "Save Product";
       statusMsg.textContent = "Error: " + err.message;
       statusMsg.classList.add('error');
     }
