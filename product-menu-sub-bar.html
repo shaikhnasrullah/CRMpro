@@ -241,6 +241,117 @@ body{
  height:10px;
 }
 
+/* PRODUCT LIST */
+.list-wrap{
+  padding:14px 20px 30px;
+}
+.search-row{
+  display:flex;
+  gap:10px;
+  margin-bottom:14px;
+}
+.search-row input{
+  flex:1;
+  padding:11px 14px;
+  border:1.5px solid #c7d0e8;
+  border-radius:9px;
+  font-size:14px;
+  font-family:inherit;
+  outline:none;
+}
+.search-row input:focus{
+  border-color:#3b57e0;
+}
+.refresh-btn{
+  background:#1b2a6b;
+  color:white;
+  border:none;
+  border-radius:9px;
+  padding:0 16px;
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+}
+.prod-card{
+  background:white;
+  border:1.5px solid #dbe2f0;
+  border-radius:10px;
+  padding:14px 16px;
+  margin-bottom:10px;
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.prod-info h4{
+  font-size:15px;
+  color:#1b2a6b;
+  font-weight:800;
+  margin-bottom:4px;
+}
+.prod-meta{
+  font-size:12px;
+  color:#6b7280;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-bottom:6px;
+}
+.prod-meta span{
+  background:#eef1f6;
+  padding:2px 9px;
+  border-radius:20px;
+}
+.prod-price{
+  font-size:13.5px;
+  font-weight:700;
+  color:#111827;
+}
+.prod-price .old{
+  color:#9ca3af;
+  font-weight:500;
+  text-decoration:line-through;
+  margin-right:6px;
+  font-size:12px;
+}
+.stock-badge{
+  font-size:11px;
+  font-weight:700;
+  padding:2px 9px;
+  border-radius:20px;
+}
+.stock-ok{ background:#D1FAE5; color:#047857; }
+.stock-low{ background:#FEF3C7; color:#B45309; }
+.stock-out{ background:#FEE2E2; color:#B91C1C; }
+.prod-actions{
+  display:flex;
+  gap:8px;
+  flex-shrink:0;
+}
+.prod-actions button{
+  border:none;
+  border-radius:7px;
+  padding:7px 12px;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+.btn-edit-p{ background:#EEF1FE; color:#3b57e0; }
+.btn-del-p{ background:#FEE2E2; color:#dc2626; }
+.empty-list{
+  text-align:center;
+  padding:40px 20px;
+  color:#6b7280;
+  font-size:13.5px;
+}
+.loading-list{
+  text-align:center;
+  padding:30px;
+  color:#6b7280;
+  font-size:13.5px;
+}
+
 
 
 </style>
@@ -340,36 +451,50 @@ stroke-width="2.5">
 <div class="cat-row" id="categoriesRow">
 
 
-<button class="cat-tab active">
+<button class="cat-tab active" onclick="window.filterCategory(this, 'All')">
+🔎 All
+</button>
+
+<button class="cat-tab" onclick="window.filterCategory(this, 'Frames')">
 👓 Frames
 </button>
 
 
-<button class="cat-tab">
+<button class="cat-tab" onclick="window.filterCategory(this, 'Lenses')">
 🔷 Lenses
 </button>
 
 
-<button class="cat-tab">
+<button class="cat-tab" onclick="window.filterCategory(this, 'Contact Lenses')">
 👁️ Contact Lenses
 </button>
 
 
-<button class="cat-tab">
+<button class="cat-tab" onclick="window.filterCategory(this, 'Sunglasses')">
 🕶️ Sunglasses
 </button>
 
 
-<button class="cat-tab">
+<button class="cat-tab" onclick="window.filterCategory(this, 'Accessories')">
 🏷️ Accessories
 </button>
 
 
-<button class="cat-tab">
+<button class="cat-tab" onclick="window.filterCategory(this, 'Eye Drops')">
 💧 Eye Drops
 </button>
 
 
+</div>
+
+
+<!-- PRODUCT LIST VIEW -->
+<div class="list-wrap" id="list-view">
+  <div class="search-row">
+    <input type="text" id="prod-search" placeholder="Search product, brand or SKU..." oninput="window.renderProductList()"/>
+    <button class="refresh-btn" onclick="window.loadProducts()">⟳ Refresh</button>
+  </div>
+  <div id="product-list-body"><div class="loading-list">Loading products...</div></div>
 </div>
 
 
@@ -411,11 +536,102 @@ row.classList.toggle("open");
 
 </script>
 
-<!-- This page shows no Firestore data of its own yet, but it's still
-     "inside the app" — bounce back to login if the session isn't valid. -->
 <script type="module">
-  import { requireAuth } from "./firebase-config.js";
-  requireAuth(() => { /* logged in, nothing else to load on this page */ });
+  import { getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+  let currentUid = null;
+  let allProducts = [];
+  let activeCategory = 'All';
+
+  requireAuth((user) => {
+    currentUid = user.uid;
+    loadProducts();
+  });
+
+  // This is the fix: the "Product List" tab never actually fetched
+  // anything before — products saved via Add-products-under-subtile.html
+  // went into users/{uid}/products but nothing on this page read them back.
+  window.loadProducts = async function () {
+    const body = document.getElementById('product-list-body');
+    body.innerHTML = '<div class="loading-list">Loading products...</div>';
+    try {
+      const snap = await getDocs(tenantCollection(currentUid, "products"));
+      allProducts = [];
+      snap.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
+      window.renderProductList();
+    } catch (err) {
+      body.innerHTML = `<div class="empty-list">Error loading products: ${err.message}</div>`;
+    }
+  };
+
+  window.filterCategory = function (btn, category) {
+    document.querySelectorAll('.cat-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeCategory = category;
+    window.renderProductList();
+  };
+
+  window.renderProductList = function () {
+    const term = (document.getElementById('prod-search').value || '').toLowerCase();
+    const body = document.getElementById('product-list-body');
+
+    let list = allProducts;
+    if (activeCategory !== 'All') list = list.filter(p => (p.category || '') === activeCategory);
+    if (term) {
+      list = list.filter(p =>
+        (p.name || '').toLowerCase().includes(term) ||
+        (p.brand || '').toLowerCase().includes(term) ||
+        (p.sku || '').toLowerCase().includes(term)
+      );
+    }
+
+    if (list.length === 0) {
+      body.innerHTML = `<div class="empty-list">${allProducts.length === 0 ? 'Abhi tak koi product add nahi hua. "➕ Add Product" se shuru karo.' : 'Is filter/search se koi product nahi mila.'}</div>`;
+      return;
+    }
+
+    body.innerHTML = list.map(p => {
+      const stock = Number(p.stock) || 0;
+      const reorder = Number(p.reorderLevel) || 0;
+      let stockBadge;
+      if (stock <= 0) stockBadge = `<span class="stock-badge stock-out">Out of Stock</span>`;
+      else if (reorder > 0 && stock <= reorder) stockBadge = `<span class="stock-badge stock-low">Low Stock: ${stock}</span>`;
+      else stockBadge = `<span class="stock-badge stock-ok">In Stock: ${stock}</span>`;
+
+      return `
+        <div class="prod-card">
+          <div class="prod-info">
+            <h4>${p.name || '(No name)'}</h4>
+            <div class="prod-meta">
+              ${p.category ? `<span>${p.category}</span>` : ''}
+              ${p.brand ? `<span>${p.brand}</span>` : ''}
+              ${p.sku ? `<span>SKU: ${p.sku}</span>` : ''}
+            </div>
+            <div class="prod-price">
+              ${p.purchasePrice ? `<span class="old">Cost Rs.${p.purchasePrice}</span>` : ''}
+              Rs. ${p.retailPrice || 0}
+            </div>
+            <div style="margin-top:6px">${stockBadge}</div>
+          </div>
+          <div class="prod-actions">
+            <button class="btn-edit-p" onclick="window.location.href='Add-products-under-subtile.html?id=${p.id}'">✏️ Edit</button>
+            <button class="btn-del-p" onclick="window.deleteProduct('${p.id}', '${(p.name || '').replace(/'/g, "\\'")}')">🗑️ Delete</button>
+          </div>
+        </div>`;
+    }).join('');
+  };
+
+  window.deleteProduct = async function (id, name) {
+    if (!confirm(`"${name}" ko delete karna hai? Yeh undo nahi ho sakta.`)) return;
+    try {
+      await deleteDoc(doc(tenantCollection(currentUid, "products"), id));
+      allProducts = allProducts.filter(p => p.id !== id);
+      window.renderProductList();
+    } catch (err) {
+      alert('Delete fail hua: ' + err.message);
+    }
+  };
 </script>
 
 
