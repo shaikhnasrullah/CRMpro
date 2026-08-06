@@ -119,8 +119,15 @@
       </div>
 
       <div class="field">
-        <label>Opening Stock</label>
-        <input type="number" id="f_stock" placeholder="0">
+        <label>Opening Stock — Branch Wise</label>
+        <div class="row2" style="margin-bottom:10px">
+          <div class="field"><label style="font-weight:500;font-size:12px">FRALEN Main Branch</label><input type="number" id="f_stock_main" placeholder="0"></div>
+          <div class="field"><label style="font-weight:500;font-size:12px">FRALEN Branch 1</label><input type="number" id="f_stock_b1" placeholder="0"></div>
+        </div>
+        <div class="row2">
+          <div class="field"><label style="font-weight:500;font-size:12px">FRALEN Branch 2</label><input type="number" id="f_stock_b2" placeholder="0"></div>
+          <div class="field"><label style="font-weight:500;font-size:12px">FRALEN Branch 3</label><input type="number" id="f_stock_b3" placeholder="0"></div>
+        </div>
       </div>
 
       <div class="field">
@@ -169,7 +176,11 @@
       document.getElementById('f_reorder').value = p.reorderLevel || '';
       document.getElementById('f_purchase').value = p.purchasePrice || '';
       document.getElementById('f_retail').value = p.retailPrice || '';
-      document.getElementById('f_stock').value = p.stock || '';
+      const sb = p.stockByBranch || {};
+      document.getElementById('f_stock_main').value = sb['FRALEN Main Branch'] || '';
+      document.getElementById('f_stock_b1').value = sb['FRALEN Branch 1'] || '';
+      document.getElementById('f_stock_b2').value = sb['FRALEN Branch 2'] || '';
+      document.getElementById('f_stock_b3').value = sb['FRALEN Branch 3'] || '';
       document.getElementById('f_notes').value = p.notes || '';
     } catch (err) {
       alert('Product load karne mein error: ' + err.message);
@@ -186,6 +197,14 @@
     const name = document.getElementById('f_name').value.trim();
     if (!name) return;
 
+    const stockByBranch = {
+      'FRALEN Main Branch': Number(document.getElementById('f_stock_main').value) || 0,
+      'FRALEN Branch 1': Number(document.getElementById('f_stock_b1').value) || 0,
+      'FRALEN Branch 2': Number(document.getElementById('f_stock_b2').value) || 0,
+      'FRALEN Branch 3': Number(document.getElementById('f_stock_b3').value) || 0,
+    };
+    const totalStock = Object.values(stockByBranch).reduce((s, v) => s + v, 0);
+
     const data = {
       name,
       category: document.getElementById('f_category').value,
@@ -193,7 +212,8 @@
       sku: document.getElementById('f_sku').value.trim(),
       purchasePrice: Number(document.getElementById('f_purchase').value) || 0,
       retailPrice: Number(document.getElementById('f_retail').value) || 0,
-      stock: Number(document.getElementById('f_stock').value) || 0,
+      stockByBranch,
+      stock: totalStock, // kept in sync for pages that just show a total (Product List, Reports)
       reorderLevel: Number(document.getElementById('f_reorder').value) || 0,
       notes: document.getElementById('f_notes').value.trim(),
     };
@@ -229,3 +249,4 @@
 
 </body>
 </html>
+
