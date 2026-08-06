@@ -78,6 +78,25 @@
 
   .loading { text-align: center; padding: 40px; color: var(--gray); font-size: 13.5px; }
 
+  .wa-btn {
+    width: 34px; height: 34px; border-radius: 50%; background: #25D366; border: none;
+    display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  }
+  .wa-btn:hover { background: #1ebe5a; }
+  .wa-btn svg { width: 18px; height: 18px; fill: white; }
+  .wa-btn:disabled { background: #D1D5DB; cursor: not-allowed; }
+
+  .receipt-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 300; align-items: center; justify-content: center; padding: 16px; }
+  .receipt-overlay.open { display: flex; }
+  .receipt-box { background: white; border-radius: 14px; padding: 16px; max-width: 380px; width: 100%; max-height: 92vh; overflow-y: auto; text-align: center; }
+  .receipt-box canvas { width: 100%; border-radius: 8px; border: 1px solid #e5e7eb; }
+  .receipt-actions { display: flex; gap: 10px; margin-top: 14px; }
+  .receipt-actions button { flex: 1; padding: 11px; border-radius: 9px; border: none; font-size: 13.5px; font-weight: 700; cursor: pointer; }
+  .btn-share { background: #25D366; color: white; }
+  .btn-dl { background: var(--accent-soft); color: var(--accent); }
+  .btn-close-receipt { background: #F3F4F6; color: var(--gray); margin-top: 8px; width: 100%; padding: 9px; border-radius: 9px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
+
   @media (max-width: 600px) {
     .stats-row { gap: 8px; }
     .stat-card { min-width: 100px; padding: 10px 12px; }
@@ -114,22 +133,41 @@
           <th>Total Spent (Rs)</th>
           <th>Pending (Rs)</th>
           <th>Last Order</th>
+          <th>Action</th>
         </tr>
       </thead>
       <tbody id="cust-tbody">
-        <tr><td colspan="6" class="loading">Loading customers...</td></tr>
+        <tr><td colspan="7" class="loading">Loading customers...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
+<!-- RECEIPT PREVIEW / SHARE MODAL -->
+<div class="receipt-overlay" id="receipt-overlay">
+  <div class="receipt-box">
+    <canvas id="receipt-canvas"></canvas>
+    <div class="receipt-actions">
+      <button class="btn-share" onclick="window.shareReceipt()">📲 Send on WhatsApp</button>
+      <button class="btn-dl" onclick="window.downloadReceipt()">⬇ Download</button>
+    </div>
+    <button class="btn-close-receipt" onclick="window.closeReceipt()">Close</button>
+  </div>
+</div>
+
 <script type="module">
-  import { query, orderBy, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { requireAuth, tenantCollection } from "./firebase-config.js";
+  import { query, orderBy, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
 
   let currentUid = null;
-  requireAuth((user) => {
+  let shopName = 'FRALEN Optical';
+
+  requireAuth(async (user) => {
     currentUid = user.uid;
+    try {
+      const snap = await getDoc(profileDoc(currentUid));
+      if (snap.exists() && snap.data().shopName) shopName = snap.data().shopName;
+    } catch (e) { /* profile optional */ }
     loadCustomers();
   });
 
@@ -147,6 +185,7 @@
       const map = {};
       snap.forEach(docSnap => {
         const o = docSnap.data();
+        o.id = docSnap.id;
         const key = (o.mobile || 'unknown').trim() || 'unknown';
         if (!map[key]) {
           map[key] = {
@@ -155,7 +194,8 @@
             orders: 0,
             totalSpent: 0,
             totalPending: 0,
-            lastOrder: o.createdAt || o.orderDate || ''
+            lastOrder: o.createdAt || o.orderDate || '',
+            lastOrderFull: o
           };
         }
         map[key].orders += 1;
@@ -163,6 +203,7 @@
         map[key].totalPending += (o.totals?.pending || 0);
         if ((o.createdAt || '') > (map[key].lastOrder || '')) {
           map[key].lastOrder = o.createdAt || o.orderDate || '';
+          map[key].lastOrderFull = o;
           if (o.customerName) map[key].name = o.customerName;
         }
       });
@@ -176,7 +217,7 @@
 
       renderTable();
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="6" class="loading">Error loading customers: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="loading">Error loading customers: ${err.message}</td></tr>`;
     }
   }
 
@@ -188,7 +229,7 @@
     );
 
     if (filtered.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
         <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
         <div>No customers found</div>
       </div></td></tr>`;
@@ -200,14 +241,21 @@
         ? `<span class="badge badge-red">Rs ${c.totalPending.toFixed(2)}</span>`
         : `<span class="badge badge-green">Cleared</span>`;
       const lastOrderDate = c.lastOrder ? new Date(c.lastOrder).toLocaleDateString('en-IN') : '-';
+      const hasOrder = !!c.lastOrderFull;
+      const hasMobile = c.mobile !== 'unknown';
       return `
-        <tr class="cust-row" onclick="goToHistory('${encodeURIComponent(c.mobile)}')">
-          <td class="cust-name">${c.name}</td>
-          <td>${c.mobile === 'unknown' ? '<span class="badge badge-gray">No mobile</span>' : c.mobile}</td>
-          <td>${c.orders}</td>
-          <td>Rs ${c.totalSpent.toFixed(2)}</td>
-          <td>${pendingBadge}</td>
-          <td>${lastOrderDate}</td>
+        <tr class="cust-row">
+          <td class="cust-name" onclick="goToHistory('${encodeURIComponent(c.mobile)}')">${c.name}</td>
+          <td onclick="goToHistory('${encodeURIComponent(c.mobile)}')">${hasMobile ? c.mobile : '<span class="badge badge-gray">No mobile</span>'}</td>
+          <td onclick="goToHistory('${encodeURIComponent(c.mobile)}')">${c.orders}</td>
+          <td onclick="goToHistory('${encodeURIComponent(c.mobile)}')">Rs ${c.totalSpent.toFixed(2)}</td>
+          <td onclick="goToHistory('${encodeURIComponent(c.mobile)}')">${pendingBadge}</td>
+          <td onclick="goToHistory('${encodeURIComponent(c.mobile)}')">${lastOrderDate}</td>
+          <td>
+            <button class="wa-btn" ${hasOrder ? '' : 'disabled'} title="${hasOrder ? 'Send receipt on WhatsApp' : 'No order data'}" onclick="event.stopPropagation(); window.openReceipt('${c.mobile}')">
+              <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.44 1.32 4.94L2 22l5.29-1.39c1.44.79 3.06 1.2 4.71 1.2h.01c5.46 0 9.91-4.45 9.91-9.91C21.92 6.45 17.5 2 12.04 2zm5.79 14.07c-.24.68-1.42 1.3-1.95 1.38-.5.08-1.13.11-1.83-.11-.42-.13-.96-.31-1.65-.61-2.9-1.26-4.79-4.17-4.93-4.36-.14-.19-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.27-.29.58-.36.78-.36.19 0 .39 0 .56.01.18.01.42-.07.65.5.24.58.82 2 .89 2.14.07.14.11.31.02.5-.09.18-.14.29-.28.44-.14.16-.29.35-.42.47-.14.13-.28.27-.12.55.16.28.71 1.18 1.53 1.91 1.06.94 1.94 1.24 2.23 1.38.29.14.46.12.62-.05.16-.16.7-.82.89-1.1.19-.29.38-.24.63-.15.26.1 1.65.78 1.93.92.29.14.48.21.55.33.07.12.07.65-.17 1.32z"/></svg>
+            </button>
+          </td>
         </tr>`;
     }).join('');
   };
@@ -215,7 +263,176 @@
   window.goToHistory = function (mobile) {
     window.location.href = `customer-history.html?mobile=${mobile}`;
   };
+
+  /* ---------------- WHATSAPP RECEIPT IMAGE ---------------- */
+  let currentReceiptBlob = null;
+  let currentReceiptCustomer = null;
+
+  window.openReceipt = function (mobileKey) {
+    const c = customersArr.find(x => x.mobile === mobileKey);
+    if (!c || !c.lastOrderFull) return;
+    currentReceiptCustomer = c;
+    drawReceipt(c, c.lastOrderFull);
+    document.getElementById('receipt-overlay').classList.add('open');
+  };
+
+  window.closeReceipt = function () {
+    document.getElementById('receipt-overlay').classList.remove('open');
+  };
+
+  function drawReceipt(customer, order) {
+    const items = order.products || [];
+    const canvas = document.getElementById('receipt-canvas');
+    const W = 600;
+    const rowH = 26;
+    const H = 300 + items.length * rowH + 190; // header + products + totals/footer
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, W, H);
+
+    // Header band
+    ctx.fillStyle = '#1B2A6B';
+    ctx.fillRect(0, 0, W, 90);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '700 26px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(shopName, W / 2, 40);
+    ctx.font = '400 13px Arial';
+    ctx.fillStyle = '#C7D2FE';
+    ctx.fillText('Sales Receipt', W / 2, 65);
+
+    let y = 120;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#111827';
+    ctx.font = '700 16px Arial';
+    ctx.fillText(customer.name || '-', 30, y);
+    ctx.font = '400 13px Arial';
+    ctx.fillStyle = '#6B7280';
+    y += 20;
+    ctx.fillText('Mobile: ' + (customer.mobile !== 'unknown' ? customer.mobile : '-'), 30, y);
+    ctx.textAlign = 'right';
+    const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '-';
+    ctx.fillText('Order No: ' + (order.orderNo || '-'), W - 30, y - 20);
+    ctx.fillText('Date: ' + dateStr, W - 30, y);
+
+    y += 20;
+    ctx.strokeStyle = '#E5E7EB';
+    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
+
+    // Products table header
+    y += 26;
+    ctx.textAlign = 'left';
+    ctx.font = '700 12px Arial';
+    ctx.fillStyle = '#1B2A6B';
+    ctx.fillText('PRODUCT', 30, y);
+    ctx.textAlign = 'right';
+    ctx.fillText('AMOUNT (Rs)', W - 30, y);
+
+    y += 10;
+    ctx.strokeStyle = '#1B2A6B';
+    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
+
+    ctx.font = '400 13px Arial';
+    items.forEach((it) => {
+      y += rowH;
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#111827';
+      ctx.fillText(`${it.name || it.type || 'Item'}`, 30, y);
+      ctx.textAlign = 'right';
+      ctx.fillText((it.total || 0).toFixed(2), W - 30, y);
+    });
+
+    y += 16;
+    ctx.strokeStyle = '#E5E7EB';
+    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
+
+    // Totals
+    const totals = order.totals || {};
+    const totalLines = [
+      ['Basic Amount', totals.basic],
+      ['GST', totals.gst],
+      ['Discount', (totals.itemDiscount || 0) + (totals.couponDiscount || 0) + (totals.loyaltyDiscount || 0)],
+    ];
+    y += 24;
+    ctx.font = '400 12.5px Arial';
+    ctx.fillStyle = '#6B7280';
+    totalLines.forEach(([lbl, val]) => {
+      ctx.textAlign = 'left'; ctx.fillText(lbl, 30, y);
+      ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (val || 0).toFixed(2), W - 30, y);
+      y += 20;
+    });
+
+    ctx.font = '700 16px Arial';
+    ctx.fillStyle = '#1B2A6B';
+    ctx.textAlign = 'left'; ctx.fillText('Payable Amount', 30, y);
+    ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (totals.payable || 0).toFixed(2), W - 30, y);
+
+    y += 24;
+    ctx.font = '400 13px Arial';
+    ctx.fillStyle = '#059669';
+    ctx.textAlign = 'left'; ctx.fillText('Advance Paid', 30, y);
+    ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (totals.advance || 0).toFixed(2), W - 30, y);
+
+    if ((totals.pending || 0) > 0) {
+      y += 20;
+      ctx.fillStyle = '#DC2626';
+      ctx.textAlign = 'left'; ctx.fillText('Balance Due', 30, y);
+      ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (totals.pending || 0).toFixed(2), W - 30, y);
+    }
+
+    // Footer note
+    y += 40;
+    ctx.strokeStyle = '#E5E7EB';
+    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
+    y += 30;
+    ctx.textAlign = 'center';
+    ctx.font = '600 14px Arial';
+    ctx.fillStyle = '#1B2A6B';
+    ctx.fillText(`Thank you for purchasing from ${shopName}! 🙏`, W / 2, y);
+    y += 20;
+    ctx.font = '400 11.5px Arial';
+    ctx.fillStyle = '#9CA3AF';
+    ctx.fillText('We look forward to serving you again.', W / 2, y);
+
+    canvas.toBlob((blob) => { currentReceiptBlob = blob; }, 'image/png');
+  }
+
+  window.shareReceipt = async function () {
+    if (!currentReceiptBlob) { alert('Receipt image ban rahi hai, ek second wait karo.'); return; }
+    const file = new File([currentReceiptBlob], 'receipt.png', { type: 'image/png' });
+    const text = `Thank you for purchasing from ${shopName}! 🙏`;
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], text });
+        return;
+      } catch (e) { /* user cancelled share sheet — fall through to link fallback */ }
+    }
+    // Fallback (desktop / unsupported browsers): open WhatsApp chat with the
+    // customer's number and a text note; image gets downloaded to attach manually.
+    window.downloadReceipt();
+    const mobile = (currentReceiptCustomer?.mobile || '').replace(/\D/g, '');
+    const waNumber = mobile.length === 10 ? '91' + mobile : mobile;
+    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(text + ' (Receipt image downloaded — attach it here)')}`, '_blank');
+  };
+
+  window.downloadReceipt = function () {
+    if (!currentReceiptBlob) return;
+    const url = URL.createObjectURL(currentReceiptBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Receipt_${(currentReceiptCustomer?.name || 'customer').replace(/\s+/g, '_')}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  };
 </script>
 
 </body>
 </html>
+
