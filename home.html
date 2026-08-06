@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FRALEN CRM — Shop Management for Optical Retailers</title>
+<meta name="description" content="FRALEN CRM helps optical shops manage orders, inventory, customers and reports in one place. Built for opticals, by opticals. Free to start.">
+
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "FRALEN CRM",
+  "applicationCategory": "BusinessApplication",
+  "applicationSubCategory": "Retail Management Software",
+  "operatingSystem": "Web",
+  "description": "Shop management CRM built for optical retailers — track orders, inventory, customers, purchases and reports in one dashboard.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "INR"
+  },
+  "provider": {
+    "@type": "Organization",
+    "name": "FRALEN",
+    "email": "mailto:contact@eyeshades2023.netlify.app",
+    "sameAs": "https://eyeshades2023.netlify.app"
+  }
+}
+</script>
+
+<!-- Google Analytics: replace G-XXXXXXXXXX with your Measurement ID, then uncomment -->
+<!--
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+</script>
+-->
+
+<style>
+  :root{
+    --navy:#1B2A6B;
+    --navy-deep:#0F1B4D;
+    --amber:#F5A623;
+    --amber-deep:#C9820A;
+    --ink:#12162E;
+    --paper:#F7F8FC;
+    --line:#E4E7F2;
+    --mist:#6C7293;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    background:var(--paper);
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.brand{font-family:'Montserrat',sans-serif;}
+  a{color:inherit; text-decoration:none;}
+  img{max-width:100%; display:block;}
+  .wrap{max-width:1160px; margin:0 auto; padding:0 24px;}
+  @media(prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important;} }
+
+  /* ---- Nav ---- */
+  header{
+    position:sticky; top:0; z-index:50;
+    background:rgba(247,248,252,0.9);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  nav.wrap{display:flex; align-items:center; justify-content:space-between; padding:16px 24px;}
+  .brand{display:flex; align-items:center; gap:10px; font-weight:800; font-size:1.3rem; color:var(--navy);}
+  .brand .mark{
+    width:34px; height:34px; border-radius:50%;
+    background:var(--navy); color:var(--amber);
+    display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:1rem; border:2px solid var(--amber);
+  }
+  .nav-links{display:flex; align-items:center; gap:28px;}
+  .nav-links a.navlink{font-weight:500; font-size:0.95rem; color:var(--mist);}
+  .nav-links a.navlink:hover{color:var(--navy);}
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 26px; border-radius:8px; font-weight:600; font-size:0.95rem;
+    cursor:pointer; border:2px solid transparent; transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .btn-amber{background:var(--amber); color:var(--navy-deep);}
+  .btn-amber:hover{transform:translateY(-2px); box-shadow:0 10px 24px rgba(245,166,35,0.35);}
+  .btn-outline{border-color:var(--navy); color:var(--navy);}
+  .btn-outline:hover{background:var(--navy); color:#fff;}
+  .btn-ghost-light{border-color:rgba(255,255,255,0.4); color:#fff;}
+  .btn-ghost-light:hover{background:rgba(255,255,255,0.12);}
+
+  /* ---- Hero ---- */
+  .hero{
+    background:radial-gradient(circle at 78% 20%, #24347f 0%, var(--navy) 45%, var(--navy-deep) 100%);
+    color:#fff; padding:88px 0 64px; position:relative; overflow:hidden;
+  }
+  .hero::before{
+    content:""; position:absolute; right:-120px; top:-120px;
+    width:420px; height:420px; border-radius:50%;
+    border:2px solid rgba(245,166,35,0.25);
+  }
+  .hero::after{
+    content:""; position:absolute; right:-40px; top:20px;
+    width:260px; height:260px; border-radius:50%;
+    border:2px solid rgba(245,166,35,0.4);
+  }
+  .hero-grid{display:grid; grid-template-columns:1.1fr 0.9fr; gap:56px; align-items:center; position:relative; z-index:1;}
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase;
+    color:var(--amber); font-weight:700; margin-bottom:18px;
+  }
+  .eyebrow::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--amber);}
+  .hero h1{font-size:2.7rem; font-weight:800; line-height:1.15; margin-bottom:18px;}
+  .hero h1 span{color:var(--amber);}
+  .hero p.lead{font-size:1.08rem; color:rgba(255,255,255,0.82); max-width:520px; margin-bottom:32px;}
+  .hero-ctas{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:28px;}
+  .trust-line{font-size:0.85rem; color:rgba(255,255,255,0.6);}
+
+  /* mock dashboard preview */
+  .preview-card{
+    background:#fff; border-radius:16px; box-shadow:0 30px 60px rgba(9,15,50,0.45);
+    overflow:hidden; transform:rotate(1.2deg); border:1px solid rgba(255,255,255,0.1);
+  }
+  .preview-topbar{
+    display:flex; align-items:center; gap:6px; padding:10px 14px; background:var(--navy-deep);
+  }
+  .preview-topbar span{width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,0.25);}
+  .preview-body{display:grid; grid-template-columns:76px 1fr; min-height:260px;}
+  .preview-side{background:var(--navy); padding:14px 8px; display:flex; flex-direction:column; gap:14px; align-items:center;}
+  .preview-side .dot{width:30px; height:30px; border-radius:8px; background:rgba(255,255,255,0.08);}
+  .preview-side .dot.active{background:var(--amber);}
+  .preview-main{padding:18px; background:#F5F6FB;}
+  .preview-stat-row{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px;}
+  .preview-stat{background:#fff; border-radius:10px; padding:10px; border:1px solid var(--line);}
+  .preview-stat .num{font-family:'Montserrat',sans-serif; font-weight:800; color:var(--navy); font-size:1.15rem;}
+  .preview-stat .lbl{font-size:0.68rem; color:var(--mist); text-transform:uppercase; letter-spacing:0.04em;}
+  .preview-bars{background:#fff; border-radius:10px; padding:14px; border:1px solid var(--line); display:flex; align-items:flex-end; gap:8px; height:100px;}
+  .preview-bars i{flex:1; background:linear-gradient(180deg, var(--amber), var(--navy)); border-radius:4px 4px 0 0; display:block;}
+
+  /* ---- Section shell ---- */
+  section{padding:80px 0;}
+  .section-head{max-width:620px; margin-bottom:48px;}
+  .section-head .eyebrow-dark{
+    font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase; font-weight:700;
+    color:var(--amber-deep); margin-bottom:12px; display:block;
+  }
+  .section-head h2{font-size:2rem; font-weight:800; color:var(--navy-deep); margin-bottom:12px;}
+  .section-head p{color:var(--mist); font-size:1.02rem;}
+
+  /* ---- Features ---- */
+  .features-grid{display:grid; grid-template-columns:repeat(3, 1fr); gap:24px;}
+  .feature-card{
+    background:#fff; border:1px solid var(--line); border-radius:14px; padding:26px;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  .feature-card:hover{transform:translateY(-4px); box-shadow:0 16px 32px rgba(27,42,107,0.1);}
+  .feature-icon{
+    width:46px; height:46px; border-radius:10px; background:var(--navy);
+    display:flex; align-items:center; justify-content:center; margin-bottom:16px;
+  }
+  .feature-icon svg{width:24px; height:24px; stroke:var(--amber);}
+  .feature-card h3{font-size:1.08rem; margin-bottom:8px; color:var(--navy-deep);}
+  .feature-card p{font-size:0.92rem; color:var(--mist);}
+
+  /* ---- Demo / screenshots section ---- */
+  .demo-section{background:var(--navy-deep); color:#fff;}
+  .demo-section .section-head h2{color:#fff;}
+  .demo-section .section-head p{color:rgba(255,255,255,0.7);}
+  .demo-tabs{display:flex; gap:10px; margin-bottom:28px; flex-wrap:wrap;}
+  .demo-tab{
+    padding:9px 18px; border-radius:999px; font-size:0.85rem; font-weight:600;
+    border:1px solid rgba(255,255,255,0.2); color:rgba(255,255,255,0.75); cursor:default;
+  }
+  .demo-tab.active{background:var(--amber); color:var(--navy-deep); border-color:var(--amber);}
+  .screen-mock{
+    background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 40px 80px rgba(0,0,0,0.35);
+  }
+  .screen-mock .preview-body{min-height:340px;}
+  .screen-mock .preview-side .dot{width:36px; height:36px;}
+
+  /* ---- About ---- */
+  .about-grid{display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:start;}
+  .about-card{background:#fff; border:1px solid var(--line); border-radius:14px; padding:28px;}
+  .about-card h3{color:var(--navy-deep); margin-bottom:10px; font-size:1.1rem;}
+  .about-card p{color:var(--mist); font-size:0.95rem;}
+  .about-list{list-style:none; margin-top:18px;}
+  .about-list li{display:flex; gap:10px; padding:8px 0; font-size:0.95rem; color:var(--ink);}
+  .about-list li::before{content:"→"; color:var(--amber-deep); font-weight:700;}
+
+  /* ---- Contact / CTA ---- */
+  .cta-section{
+    background:linear-gradient(135deg, var(--navy) 0%, var(--navy-deep) 100%);
+    color:#fff; text-align:center; border-radius:20px; margin:0 24px; padding:64px 24px;
+  }
+  .cta-section h2{font-size:1.9rem; font-weight:800; margin-bottom:14px;}
+  .cta-section p{color:rgba(255,255,255,0.78); max-width:480px; margin:0 auto 30px;}
+  .cta-buttons{display:flex; gap:14px; justify-content:center; flex-wrap:wrap;}
+  .contact-strip{display:flex; gap:28px; justify-content:center; margin-top:34px; flex-wrap:wrap; font-size:0.9rem; color:rgba(255,255,255,0.65);}
+  .contact-strip a{color:#fff; font-weight:600;}
+  .contact-strip a:hover{color:var(--amber);}
+
+  /* ---- Footer ---- */
+  footer{padding:40px 0 30px; border-top:1px solid var(--line);}
+  .footer-grid{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;}
+  .footer-links{display:flex; gap:22px; flex-wrap:wrap;}
+  .footer-links a{font-size:0.88rem; color:var(--mist);}
+  .footer-links a:hover{color:var(--navy);}
+  .footer-note{font-size:0.82rem; color:var(--mist);}
+
+  @media(max-width:860px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero{padding:56px 0 48px;}
+    .hero h1{font-size:2.1rem;}
+    .features-grid{grid-template-columns:1fr 1fr;}
+    .about-grid{grid-template-columns:1fr;}
+    .nav-links .navlink{display:none;}
+  }
+  @media(max-width:560px){
+    .features-grid{grid-template-columns:1fr;}
+    .cta-buttons{flex-direction:column; align-items:stretch;}
+    .preview-topbar, .hero::before, .hero::after{opacity:0.6;}
+  }
+
+  :focus-visible{outline:3px solid var(--amber); outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a href="#top" class="brand"><span class="mark">F</span>FRALEN CRM</a>
+    <div class="nav-links">
+      <a href="#features" class="navlink">Features</a>
+      <a href="#demo" class="navlink">Demo</a>
+      <a href="#about" class="navlink">About</a>
+      <a href="#contact" class="navlink">Contact</a>
+      <a href="https://shaikhnasrullah.github.io/CRMpro/" class="btn btn-outline" style="padding:9px 20px; font-size:0.88rem;">Log In</a>
+    </div>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- HERO -->
+  <section class="hero" style="padding-top:88px;">
+    <div class="wrap hero-grid">
+      <div>
+        <span class="eyebrow">Built for optical shops</span>
+        <h1>Run your optical shop <span>without the paperwork.</span></h1>
+        <p class="lead">FRALEN CRM is a simple shop-management system made for opticals — track orders, stock, customers and purchases in one dashboard, from your counter or your phone.</p>
+        <div class="hero-ctas">
+          <a href="https://shaikhnasrullah.github.io/CRMpro/#signup" class="btn btn-amber">Get Started Free</a>
+          <a href="#demo" class="btn btn-ghost-light">See how it works</a>
+        </div>
+        <p class="trust-line">No credit card needed · Set up your shop in under 5 minutes</p>
+      </div>
+
+      <div class="preview-card" aria-hidden="true">
+        <div class="preview-topbar"><span></span><span></span><span></span></div>
+        <div class="preview-body">
+          <div class="preview-side">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+          <div class="preview-main">
+            <div class="preview-stat-row">
+              <div class="preview-stat"><div class="num">128</div><div class="lbl">Orders</div></div>
+              <div class="preview-stat"><div class="num">₹42k</div><div class="lbl">This Week</div></div>
+              <div class="preview-stat"><div class="num">36</div><div class="lbl">Low Stock</div></div>
+            </div>
+            <div class="preview-bars">
+              <i style="height:40%;"></i><i style="height:70%;"></i><i style="height:55%;"></i>
+              <i style="height:85%;"></i><i style="height:60%;"></i><i style="height:95%;"></i>
+              <i style="height:50%;"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow-dark">What's inside</span>
+        <h2>Everything your counter staff already does — just faster</h2>
+        <p>Five modules that cover a real optical shop's daily work, not a generic CRM template.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg></div>
+          <h3>Orders</h3>
+          <p>Log frame + lens orders, track fitting status, and never lose a customer's prescription again.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v2m18 0v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8m18 0H3m5 4h8"/></svg></div>
+          <h3>Inventory</h3>
+          <p>See frame and lens stock live, get low-stock alerts, and track purchases from every vendor.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></div>
+          <h3>Customers</h3>
+          <p>Every customer's purchase history and prescription in one place — perfect for reminder calls.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 4 5-8"/></svg></div>
+          <h3>Reports</h3>
+          <p>Daily sales, best-selling frames, and repeat-customer trends — no spreadsheet needed.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div>
+          <h3>Purchases &amp; Returns</h3>
+          <p>Record vendor purchases and handle defect returns without a single paper register.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div>
+          <h3>Works on Mobile</h3>
+          <p>Check today's orders or stock from your phone while you're at the counter or on the go.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DEMO -->
+  <section id="demo" class="demo-section">
+    <div class="wrap">
+      <div class="section-head">
+        <span class="eyebrow-dark" style="color:var(--amber);">Take a look</span>
+        <h2>A dashboard built for a shop counter, not a boardroom</h2>
+        <p>Clean navy layout, big numbers, and a sidebar that gets out of your way.</p>
+      </div>
+      <div class="demo-tabs">
+        <span class="demo-tab active">Orders</span>
+        <span class="demo-tab">Inventory</span>
+        <span class="demo-tab">Customers</span>
+        <span class="demo-tab">Reports</span>
+      </div>
+      <div class="screen-mock" aria-hidden="true">
+        <div class="preview-topbar"><span></span><span></span><span></span></div>
+        <div class="preview-body">
+          <div class="preview-side">
+            <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <div class="preview-main">
+            <div class="preview-stat-row">
+              <div class="preview-stat"><div class="num">14</div><div class="lbl">Pending Orders</div></div>
+              <div class="preview-stat"><div class="num">₹9.2k</div><div class="lbl">Today's Sales</div></div>
+              <div class="preview-stat"><div class="num">7</div><div class="lbl">Ready to Fit</div></div>
+            </div>
+            <div class="preview-bars">
+              <i style="height:35%;"></i><i style="height:65%;"></i><i style="height:45%;"></i>
+              <i style="height:90%;"></i><i style="height:55%;"></i><i style="height:75%;"></i>
+              <i style="height:40%;"></i><i style="height:80%;"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="wrap about-grid">
+      <div>
+        <span class="eyebrow-dark">About FRALEN</span>
+        <h2>Made by an optical shop, for optical shops</h2>
+        <p style="color:var(--mist); margin-bottom:20px;">FRALEN CRM is built and maintained by the team behind Eye Shades, a Mumbai optical store running since 1999. We built it to replace our own paper registers and Excel sheets — now we're opening it up to other shops.</p>
+        <ul class="about-list">
+          <li>Built for how opticals actually work day to day</li>
+          <li>Your shop's data stays private to your account</li>
+          <li>Set up takes minutes, no IT team required</li>
+        </ul>
+      </div>
+      <div class="about-card">
+        <h3>Have a shop in mind?</h3>
+        <p>Talk to us before you sign up — we'll help you set up your first products and orders.</p>
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
+          <a href="https://wa.me/918828245787" class="btn btn-amber" style="width:100%;">Chat on WhatsApp</a>
+          <a href="mailto:contact@eyeshades2023.netlify.app" class="btn btn-outline" style="width:100%;">Email Us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA / CONTACT -->
+  <section id="contact">
+    <div class="cta-section wrap">
+      <h2>Ready to run your shop from one screen?</h2>
+      <p>Start free — add your first product or order in under five minutes.</p>
+      <div class="cta-buttons">
+        <a href="https://shaikhnasrullah.github.io/CRMpro/#signup" class="btn btn-amber">Sign Up Free</a>
+        <a href="https://shaikhnasrullah.github.io/CRMpro/" class="btn btn-ghost-light">I already have an account</a>
+      </div>
+      <div class="contact-strip">
+        <span>📞 <a href="tel:+918828245787">88282 45787</a></span>
+        <span>💬 <a href="https://wa.me/918828245787">WhatsApp Us</a></span>
+        <span>✉️ <a href="mailto:contact@eyeshades2023.netlify.app">Email</a></span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-grid">
+    <div class="brand" style="font-size:1.05rem;"><span class="mark" style="width:28px; height:28px; font-size:0.85rem;">F</span>FRALEN CRM</div>
+    <div class="footer-links">
+      <a href="#features">Features</a>
+      <a href="#about">About</a>
+      <a href="privacy.html">Privacy Policy</a>
+      <a href="privacy.html#terms">Terms</a>
+      <a href="https://wa.me/918828245787">Contact</a>
+    </div>
+  </div>
+  <div class="wrap" style="margin-top:16px;">
+    <p class="footer-note">© <span id="year"></span> FRALEN CRM · Made in Mumbai for optical retailers.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
+
