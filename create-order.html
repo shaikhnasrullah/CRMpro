@@ -216,6 +216,12 @@ table.prod-table tr:nth-child(even) td { background: #f8faff; }
       <div class="total-row"><span class="lbl">Advance Amount : Rs</span>
         <input type="number" id="advance" placeholder="0.00" oninput="window.calcTotals()" style="border:1.5px solid #d1d5db;border-radius:6px;padding:5px 8px;font-size:13px;width:100px;text-align:right"/>
       </div>
+      <div class="total-row"><span class="lbl">Advance Payment Mode</span>
+        <select id="advance-mode" style="border:1.5px solid #d1d5db;border-radius:6px;padding:5px 8px;font-size:13px">
+          <option value="Cash">💵 Cash</option>
+          <option value="Online">💳 Online</option>
+        </select>
+      </div>
       <div class="total-row highlight"><span class="lbl">Pending Amount : Rs</span><span class="val" id="t-pending">0.00</span></div>
     </div>
   </div>
@@ -278,15 +284,36 @@ table.prod-table tr:nth-child(even) td { background: #f8faff; }
 
 <div class="success-toast" id="toast">✅ Order saved successfully!</div>
 
+<!-- POST-SAVE MODAL: print the invoice right away, or skip to dashboard -->
+<div class="modal-overlay" id="saved-modal">
+  <div class="modal" style="text-align:center;max-width:360px">
+    <div style="font-size:44px;margin-bottom:6px">✅</div>
+    <h2 style="margin-bottom:4px">Order Saved!</h2>
+    <p style="color:var(--gray);font-size:13px;margin-bottom:20px">Order No. <b id="saved-orderno"></b></p>
+    <button class="save-btn" style="margin:0 0 10px" onclick="window.printSavedInvoice()">🖨️ Print Invoice</button>
+    <button class="btn-cancel" style="width:100%;padding:11px" onclick="window.location.href='dashboard.html'">Skip, Go to Dashboard</button>
+  </div>
+</div>
+
 <script type="module">
-import { addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { requireAuth, tenantCollection } from "./firebase-config.js";
+import { addDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
+import { printInvoice } from "./invoice-print.js";
+
+let shopProfile = {};
+let lastSavedOrder = null;
 
 // Multi-tenant: we don't know which shop's "orders" subcollection to write
 // to until we know who's logged in. requireAuth() also bounces back to
 // index.html if the session isn't valid.
 let currentUid = null;
-requireAuth((user) => { currentUid = user.uid; });
+requireAuth(async (user) => {
+  currentUid = user.uid;
+  try {
+    const snap = await getDoc(profileDoc(currentUid));
+    if (snap.exists()) shopProfile = snap.data();
+  } catch (e) { /* profile optional */ }
+});
 
 const ROWS = 10;
 const PRODUCTS = {
@@ -522,7 +549,25 @@ async function finishSave() {
       advance: parseFloat(document.getElementById('advance').value) || 0,
       pending: parseFloat(document.getElementById('t-pending').textContent) || 0,
     },
-    status: 'pending',
+    // Full payment already received at the counter -> order goes straight
+    // to "confirmed", skipping the Pending Payments list. Otherwise it
+    // lands there so it can be edited/confirmed later (see sales-history.html).
+    status: (parseFloat(document.getElementById('t-pending').textContent) || 0) <= 0 ? 'confirmed' : 'pending',
+    // Separate from payment status above — this tracks physical order
+    // preparation: Pending -> Ready -> Delivered. Updated from sales-history.html.
+    orderStage: 'Pending',
+    // Every payment (advance now, remaining later from sales-history.html)
+    // is logged here with its mode, so Cash vs Online can be reconciled.
+    payments: (() => {
+      const advanceAmt = parseFloat(document.getElementById('advance').value) || 0;
+      if (advanceAmt <= 0) return [];
+      return [{
+        amount: advanceAmt,
+        mode: document.getElementById('advance-mode').value,
+        type: 'advance',
+        date: new Date().toISOString()
+      }];
+    })(),
     hasLens,
     prescription: hasLens ? {
       re: { sph: document.getElementById('re-sph').value, cyl: document.getElementById('re-cyl').value, axis: document.getElementById('re-axis').value, add: document.getElementById('re-add').value, va: document.getElementById('re-va').value },
@@ -541,9 +586,9 @@ async function finishSave() {
     // ⬇️ THE key multi-tenant change: write into users/{uid}/orders,
     // never a global "orders" collection.
     await addDoc(tenantCollection(currentUid, "orders"), order);
-    const toast = document.getElementById('toast');
-    toast.style.display = 'block';
-    setTimeout(() => { toast.style.display = 'none'; window.location.href = 'dashboard.html'; }, 1800);
+    lastSavedOrder = order;
+    document.getElementById('saved-orderno').textContent = order.orderNo || '';
+    document.getElementById('saved-modal').classList.add('open');
   } catch (err) {
     alert('Order save fail hua: ' + err.message);
     saveBtn.textContent = '💾 Save Order';
@@ -561,6 +606,10 @@ window.toggleCustomerAccount = toggleCustomerAccount;
 window.saveOrder = saveOrder;
 window.closeRx = closeRx;
 window.saveRx = saveRx;
+window.printSavedInvoice = function () {
+  if (!lastSavedOrder) return;
+  printInvoice(lastSavedOrder, shopProfile);
+};
 
 buildRows();
 calcTotals();
