@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Expenses</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --gray: #6B7280; --border: #C5D3E8;
+    --green: #10B981; --orange: #F59E0B; --red: #EF4444;
+  }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
+
+  .topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+  .topbar-logo span { color: #7B93FF; }
+  .back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .page-title { background: white; padding: 14px 20px; font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--accent); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; }
+  .add-btn { background: var(--accent); color: white; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .add-btn:hover { background: var(--navy-light); }
+
+  .container { padding: 16px; max-width: 900px; margin: 0 auto; }
+
+  .range-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 14px 18px; margin-bottom: 16px; display:flex; gap: 8px; flex-wrap: wrap; }
+  .qr-btn { padding: 8px 16px; border-radius: 9px; border: 1.5px solid var(--border); background: white; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; }
+  .qr-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-card { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 14px 18px; flex: 1; min-width: 140px; }
+  .stat-card .lbl { font-size: 11.5px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .val { font-size: 22px; font-weight: 800; color: var(--navy); margin-top: 4px; }
+  .stat-card .val.green { color: var(--green); }
+  .stat-card .val.red { color: var(--red); }
+  .stat-card.profit { background: var(--navy); }
+  .stat-card.profit .lbl { color: rgba(255,255,255,0.6); }
+  .stat-card.profit .val { color: white; }
+
+  .table-wrap { background: white; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 560px; }
+  th { background: var(--navy); color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 12px; text-align: left; }
+  td { padding: 10px 12px; border-bottom: 1px solid #eef1f6; font-size: 13.5px; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .cat-badge { display:inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; background:#F3F4F6; color: var(--gray); }
+  .del-btn { background: #FEE2E2; color: #DC2626; border: none; border-radius: 7px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+  .empty-state, .loading { text-align: center; padding: 40px 20px; color: var(--gray); font-size: 13.5px; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+  .modal h2 { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+  .field select, .field input, .field textarea { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; }
+  .field select:focus, .field input:focus, .field textarea:focus { border-color: var(--accent); }
+  .modal-err { color: var(--red); font-size: 12.5px; margin-top: 4px; display: none; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
+  .btn-cancel { padding: 9px 18px; border: 1.5px solid var(--border); border-radius: 9px; background: white; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--gray); }
+  .btn-save { padding: 9px 20px; background: var(--navy); color: white; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-save:hover { background: var(--navy-light); }
+
+  .success-toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; z-index: 300; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+</div>
+
+<div class="page-title">
+  <span>Expenses &amp; Profit</span>
+  <button class="add-btn" onclick="window.openAddModal()">➕ Add Expense</button>
+</div>
+
+<div class="container">
+  <div class="range-card" id="range-bar">
+    <button class="qr-btn" data-range="today" onclick="window.setRange('today')">Today</button>
+    <button class="qr-btn" data-range="week" onclick="window.setRange('week')">This Week</button>
+    <button class="qr-btn active" data-range="month" onclick="window.setRange('month')">This Month</button>
+    <button class="qr-btn" data-range="year" onclick="window.setRange('year')">This Year</button>
+    <button class="qr-btn" data-range="all" onclick="window.setRange('all')">All Time</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="lbl">Total Sales</div><div class="val green" id="stat-sales">Rs. 0</div></div>
+    <div class="stat-card"><div class="lbl">Total Expenses</div><div class="val red" id="stat-expenses">Rs. 0</div></div>
+    <div class="stat-card profit"><div class="lbl">Net Profit</div><div class="val" id="stat-profit">Rs. 0</div></div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Category</th><th>Description</th><th>Amount (Rs)</th><th>Action</th></tr>
+      </thead>
+      <tbody id="exp-tbody"><tr><td colspan="5" class="loading">Loading expenses...</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <h2>➕ Add Expense</h2>
+    <div class="field">
+      <label>Category</label>
+      <select id="exp-category">
+        <option>Rent</option>
+        <option>Electricity Bill</option>
+        <option>Staff Salary</option>
+        <option>Supplier Payment</option>
+        <option>Maintenance/Repair</option>
+        <option>Marketing</option>
+        <option>Transport</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Amount (Rs.)</label>
+      <input type="number" id="exp-amount" placeholder="e.g. 15000" min="0" step="0.01"/>
+    </div>
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="exp-date"/>
+    </div>
+    <div class="field">
+      <label>Description (optional)</label>
+      <textarea id="exp-desc" rows="2" placeholder="e.g. July shop rent"></textarea>
+    </div>
+    <div class="modal-err" id="exp-err">Please fill amount and date correctly.</div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="window.closeAddModal()">Cancel</button>
+      <button class="btn-save" onclick="window.saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<div class="success-toast" id="toast">✅ Updated!</div>
+
+<script type="module">
+import { getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+let currentUid = null;
+let allExpenses = [];
+let allOrders = [];
+let activeRange = 'month';
+let rangeFrom = null, rangeTo = null;
+
+requireAuth((user) => {
+  currentUid = user.uid;
+  loadData();
+});
+
+async function loadData() {
+  try {
+    const [expSnap, orderSnap] = await Promise.all([
+      getDocs(tenantCollection(currentUid, "expenses")),
+      getDocs(tenantCollection(currentUid, "orders")),
+    ]);
+    allExpenses = expSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    allOrders = orderSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    window.setRange('month');
+  } catch (err) {
+    document.getElementById('exp-tbody').innerHTML = `<tr><td colspan="5" class="loading">Error: ${err.message}</td></tr>`;
+  }
+}
+
+window.setRange = function (range) {
+  activeRange = range;
+  document.querySelectorAll('.qr-btn').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+  const now = new Date();
+  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0);
+  const endOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+
+  if (range === 'today') { rangeFrom = startOfDay(now); rangeTo = endOfDay(now); }
+  else if (range === 'week') {
+    const day = now.getDay();
+    const monday = new Date(now); monday.setDate(now.getDate() - ((day + 6) % 7));
+    rangeFrom = startOfDay(monday); rangeTo = endOfDay(now);
+  } else if (range === 'month') { rangeFrom = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)); rangeTo = endOfDay(now); }
+  else if (range === 'year') { rangeFrom = startOfDay(new Date(now.getFullYear(), 0, 1)); rangeTo = endOfDay(now); }
+  else { rangeFrom = null; rangeTo = null; }
+
+  render();
+};
+
+function inRange(dateStr) {
+  if (!rangeFrom && !rangeTo) return true;
+  if (!dateStr) return false;
+  const d = new Date(dateStr);
+  if (isNaN(d)) return false;
+  if (rangeFrom && d < rangeFrom) return false;
+  if (rangeTo && d > rangeTo) return false;
+  return true;
+}
+
+function render() {
+  const filteredExpenses = allExpenses.filter(e => inRange(e.date)).sort((a, b) => new Date(b.date) - new Date(a.date));
+  const filteredOrders = allOrders.filter(o => inRange(o.createdAt));
+
+  const totalSales = filteredOrders.reduce((s, o) => s + (o.totals?.payable || 0), 0);
+  const totalExpenses = filteredExpenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+  const profit = totalSales - totalExpenses;
+
+  document.getElementById('stat-sales').textContent = 'Rs. ' + totalSales.toFixed(2);
+  document.getElementById('stat-expenses').textContent = 'Rs. ' + totalExpenses.toFixed(2);
+  const profitEl = document.getElementById('stat-profit');
+  profitEl.textContent = 'Rs. ' + profit.toFixed(2);
+  profitEl.style.color = profit < 0 ? '#FCA5A5' : 'white';
+
+  const tbody = document.getElementById('exp-tbody');
+  if (filteredExpenses.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Is date range mein koi expense record nahi hai.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filteredExpenses.map(e => `
+    <tr>
+      <td>${e.date ? new Date(e.date).toLocaleDateString('en-IN') : '-'}</td>
+      <td><span class="cat-badge">${e.category || 'Other'}</span></td>
+      <td>${e.description || '-'}</td>
+      <td>Rs. ${(Number(e.amount) || 0).toFixed(2)}</td>
+      <td><button class="del-btn" onclick="window.deleteExpense('${e.id}')">🗑️ Delete</button></td>
+    </tr>`).join('');
+}
+
+/* ---------------- ADD EXPENSE ---------------- */
+window.openAddModal = function () {
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-desc').value = '';
+  document.getElementById('exp-date').value = new Date().toISOString().slice(0, 10);
+  document.getElementById('exp-err').style.display = 'none';
+  document.getElementById('add-modal').classList.add('open');
+};
+window.closeAddModal = function () {
+  document.getElementById('add-modal').classList.remove('open');
+};
+
+window.saveExpense = async function () {
+  const category = document.getElementById('exp-category').value;
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const date = document.getElementById('exp-date').value;
+  const description = document.getElementById('exp-desc').value.trim();
+  const err = document.getElementById('exp-err');
+
+  if (!amount || amount <= 0 || !date) {
+    err.style.display = 'block';
+    return;
+  }
+
+  try {
+    const docRef = await addDoc(tenantCollection(currentUid, "expenses"), {
+      category, amount, date, description, createdAt: new Date().toISOString(),
+    });
+    allExpenses.push({ id: docRef.id, category, amount, date, description });
+    window.closeAddModal();
+    showToast('✅ Expense added!');
+    render();
+  } catch (e) {
+    err.textContent = 'Save fail hua: ' + e.message;
+    err.style.display = 'block';
+  }
+};
+
+window.deleteExpense = async function (id) {
+  if (!confirm('Yeh expense delete karna hai?')) return;
+  try {
+    await deleteDoc(doc(tenantCollection(currentUid, "expenses"), id));
+    allExpenses = allExpenses.filter(e => e.id !== id);
+    showToast('✅ Deleted!');
+    render();
+  } catch (e) {
+    alert('Delete fail hua: ' + e.message);
+  }
+};
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.style.display = 'block';
+  setTimeout(() => { toast.style.display = 'none'; }, 2000);
+}
+</script>
+
+</body>
+</html>
+
