@@ -163,6 +163,7 @@
 import { getDocs, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
 import { printInvoice } from "./invoice-print.js";
+import { printPrescription } from "./prescription-print.js";
 
 let shopProfile = {};
 
@@ -263,6 +264,9 @@ window.renderTable = function () {
 
     let actions = '';
     actions += `<button class="action-btn btn-edit" style="background:var(--accent-soft);color:var(--navy)" onclick="window.printOrder('${o.id}')">🖨️ Print</button>`;
+    if (o.hasLens && o.prescription) {
+      actions += `<button class="action-btn btn-edit" style="background:#EEF1FE;color:#7B93FF" onclick="window.printRx('${o.id}')">👁️ Rx Card</button>`;
+    }
     if (pending > 0) {
       actions += `<button class="action-btn btn-edit" onclick="window.openPayModal('${o.id}')">✏️ Edit / Add Payment</button>`;
     }
@@ -385,6 +389,12 @@ window.printOrder = function (orderId) {
   printInvoice(order, shopProfile);
 };
 
+window.printRx = function (orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  printPrescription(order, shopProfile);
+};
+
 window.confirmOrder = async function (orderId) {
   if (!currentUid) return;
   const order = allOrders.find(o => o.id === orderId);
@@ -415,3 +425,4 @@ function showToast(msg) {
 
 </body>
 </html>
+
