@@ -291,6 +291,7 @@ table.prod-table tr:nth-child(even) td { background: #f8faff; }
     <h2 style="margin-bottom:4px">Order Saved!</h2>
     <p style="color:var(--gray);font-size:13px;margin-bottom:20px">Order No. <b id="saved-orderno"></b></p>
     <button class="save-btn" style="margin:0 0 10px" onclick="window.printSavedInvoice()">🖨️ Print Invoice</button>
+    <button class="save-btn" id="print-rx-btn" style="margin:0 0 10px;background:#7B93FF;display:none" onclick="window.printSavedPrescription()">👁️ Print Prescription Card</button>
     <button class="btn-cancel" style="width:100%;padding:11px" onclick="window.location.href='dashboard.html'">Skip, Go to Dashboard</button>
   </div>
 </div>
@@ -299,6 +300,7 @@ table.prod-table tr:nth-child(even) td { background: #f8faff; }
 import { addDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
 import { printInvoice } from "./invoice-print.js";
+import { printPrescription } from "./prescription-print.js";
 
 let shopProfile = {};
 let lastSavedOrder = null;
@@ -608,6 +610,7 @@ async function finishSave() {
     await addDoc(tenantCollection(currentUid, "orders"), order);
     lastSavedOrder = order;
     document.getElementById('saved-orderno').textContent = order.orderNo || '';
+    document.getElementById('print-rx-btn').style.display = order.hasLens ? '' : 'none';
     document.getElementById('saved-modal').classList.add('open');
   } catch (err) {
     alert('Order save fail hua: ' + err.message);
@@ -629,6 +632,10 @@ window.saveRx = saveRx;
 window.printSavedInvoice = function () {
   if (!lastSavedOrder) return;
   printInvoice(lastSavedOrder, shopProfile);
+};
+window.printSavedPrescription = function () {
+  if (!lastSavedOrder) return;
+  printPrescription(lastSavedOrder, shopProfile);
 };
 
 buildRows();
