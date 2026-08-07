@@ -164,6 +164,7 @@ import { getDocs, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic
 import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
 import { printInvoice } from "./invoice-print.js";
 import { printPrescription } from "./prescription-print.js";
+import { shareReceiptOnWhatsApp } from "./receipt-image.js";
 
 let shopProfile = {};
 
@@ -264,6 +265,7 @@ window.renderTable = function () {
 
     let actions = '';
     actions += `<button class="action-btn btn-edit" style="background:var(--accent-soft);color:var(--navy)" onclick="window.printOrder('${o.id}')">🖨️ Print</button>`;
+    actions += `<button class="action-btn" style="background:#DCFCE7;color:#059669" onclick="window.sendOrderOnWhatsApp('${o.id}')">📲 WhatsApp</button>`;
     if (o.hasLens && o.prescription) {
       actions += `<button class="action-btn btn-edit" style="background:#EEF1FE;color:#7B93FF" onclick="window.printRx('${o.id}')">👁️ Rx Card</button>`;
     }
@@ -395,6 +397,13 @@ window.printRx = function (orderId) {
   printPrescription(order, shopProfile);
 };
 
+window.sendOrderOnWhatsApp = async function (orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  const shopNm = shopProfile.shopName || 'FRALEN Optical';
+  await shareReceiptOnWhatsApp(order.customerName, order.mobile, order, shopNm);
+};
+
 window.confirmOrder = async function (orderId) {
   if (!currentUid) return;
   const order = allOrders.find(o => o.id === orderId);
@@ -425,4 +434,3 @@ function showToast(msg) {
 
 </body>
 </html>
-
