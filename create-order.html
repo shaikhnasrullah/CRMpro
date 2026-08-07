@@ -296,7 +296,7 @@ table.prod-table tr:nth-child(even) td { background: #f8faff; }
 </div>
 
 <script type="module">
-import { addDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { addDoc, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
 import { printInvoice } from "./invoice-print.js";
 
@@ -313,16 +313,13 @@ requireAuth(async (user) => {
     const snap = await getDoc(profileDoc(currentUid));
     if (snap.exists()) shopProfile = snap.data();
   } catch (e) { /* profile optional */ }
+  // Load THIS shop's real product catalog (users/{uid}/products) so the
+  // order form's product dropdowns reflect what's actually in stock,
+  // not a hardcoded demo list.
+  await loadProductCatalog();
 });
 
 const ROWS = 10;
-const PRODUCTS = {
-  'Frame': [{ name: 'Ray-Ban RB2140', price: 3500 }, { name: 'Oakley OX8046', price: 5200 }, { name: 'Titan Frame TF01', price: 1800 }],
-  'Lens': [{ name: 'SV HC Lens', price: 800 }, { name: 'SV ARC Lens', price: 1200 }, { name: 'Progressive V2', price: 3500 }, { name: 'Bifocal KT', price: 1500 }],
-  'Sunglasses': [{ name: 'Fastrack S001', price: 1200 }, { name: 'Vincent Chase SG', price: 2400 }],
-  'Contact Lens': [{ name: 'Acuvue Moist', price: 900 }, { name: 'Air Optix', price: 1100 }],
-};
-
 const COUPONS = { 'FRALEN10': 10, 'KETO15': 15, 'WELCOME5': 5 };
 
 let hasLens = false;
@@ -358,7 +355,7 @@ function buildRows() {
       <td>
         <select class="type-select" data-row="${i}" onchange="window.onTypeChange(${i})">
           <option value="">Select Type</option>
-          <option>Frame</option><option>Lens</option><option>Sunglasses</option><option>Contact Lens</option>
+          <option>Frames</option><option>Lenses</option><option>Sunglasses</option><option>Contact Lenses</option><option>Accessories</option><option>Eye Drops</option>
         </select>
       </td>
       <td><select class="prod-select" data-row="${i}" onchange="window.onProdChange(${i})"><option value="">Select Product</option></select></td>
@@ -371,17 +368,38 @@ function buildRows() {
   }
 }
 
+// Products now come from THIS shop's real catalog — users/{uid}/products —
+// instead of the old hardcoded demo list. Grouped by category so the
+// Product Type dropdown filters the Product Name dropdown, same as before.
+let productsByCategory = {};
+let productsById = {};
+
+async function loadProductCatalog() {
+  try {
+    const snap = await getDocs(tenantCollection(currentUid, "products"));
+    productsByCategory = {};
+    productsById = {};
+    snap.forEach(docSnap => {
+      const p = { id: docSnap.id, ...docSnap.data() };
+      productsById[p.id] = p;
+      const cat = p.category || 'Other';
+      if (!productsByCategory[cat]) productsByCategory[cat] = [];
+      productsByCategory[cat].push(p);
+    });
+  } catch (err) {
+    console.error('Product catalog load fail:', err);
+  }
+}
+
 function onTypeChange(row) {
   const type = document.querySelector(`.type-select[data-row="${row}"]`).value;
   const prodSel = document.querySelector(`.prod-select[data-row="${row}"]`);
-  prodSel.innerHTML = '<option value="">Select Product</option>';
-  if (type && PRODUCTS[type]) {
-    PRODUCTS[type].forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.price;
-      opt.textContent = p.name;
-      prodSel.appendChild(opt);
-    });
+  const list = productsByCategory[type] || [];
+  if (type && list.length === 0) {
+    prodSel.innerHTML = '<option value="">No products in this category</option>';
+  } else {
+    prodSel.innerHTML = '<option value="">Select Product</option>' +
+      list.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
   }
   document.querySelector(`.price-input[data-row="${row}"]`).value = '';
   document.querySelector(`.total-input[data-row="${row}"]`).value = '';
@@ -390,7 +408,8 @@ function onTypeChange(row) {
 
 function onProdChange(row) {
   const prodSel = document.querySelector(`.prod-select[data-row="${row}"]`);
-  const price = parseFloat(prodSel.value) || 0;
+  const product = productsById[prodSel.value];
+  const price = product ? Number(product.retailPrice) || 0 : 0;
   document.querySelector(`.price-input[data-row="${row}"]`).value = price || '';
   calcRow(row);
 }
@@ -460,7 +479,7 @@ function calcTotals() {
       const gstAmt = afterDisc * gstPct / 100;
       basic += afterDisc; gstTotal += gstAmt; itemDiscTotal += discAmt;
     }
-    if (type === 'Lens') hasLens = true;
+    if (type === 'Lenses') hasLens = true;
   }
   const sales = basic + gstTotal;
   const couponAmt = sales * couponPct / 100;
