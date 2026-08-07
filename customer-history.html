@@ -173,19 +173,32 @@
 </div>
 
 <script type="module">
-  import { getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { requireAuth, tenantCollection } from "./firebase-config.js";
+  import { getDocs, query, orderBy, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
+  import { printPrescription } from "./prescription-print.js";
 
   // Get mobile from URL
   const params = new URLSearchParams(window.location.search);
   const mobile = decodeURIComponent(params.get('mobile') || '');
 
   let currentUid = null;
-  requireAuth((user) => {
+  let shopProfile = {};
+  let ordersById = {};
+  requireAuth(async (user) => {
     currentUid = user.uid;
     if (!mobile) { window.location.href = "customers.html"; return; }
+    try {
+      const snap = await getDoc(profileDoc(currentUid));
+      if (snap.exists()) shopProfile = snap.data();
+    } catch (e) { /* profile optional */ }
     loadCustomerData();
   });
+
+  window.printRx = function (orderId) {
+    const order = ordersById[orderId];
+    if (!order) return;
+    printPrescription(order, shopProfile);
+  };
 
   function stageBadge(stage) {
     const s = stage || 'Pending';
@@ -212,6 +225,7 @@
         const oMobile = (o.mobile || 'unknown').trim();
         if (oMobile === mobile || mobile === 'unknown' && !o.mobile) {
           orders.push(o);
+          ordersById[o.id] = o;
         }
       });
 
@@ -325,6 +339,7 @@
               ${o.prescription.pd ? `<div class="rx-mini-item"><div class="rx-mini-lbl">PD</div><div class="rx-mini-val">${o.prescription.pd}mm</div></div>` : ''}
               ${o.prescription.lensType ? `<div class="rx-mini-item"><div class="rx-mini-lbl">Type</div><div class="rx-mini-val">${o.prescription.lensType}</div></div>` : ''}
             </div>
+            <button onclick="event.stopPropagation(); window.printRx('${o.id}')" style="margin-top:10px;background:#EEF1FE;color:#7B93FF;border:none;border-radius:7px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer">👁️ Print Prescription Card</button>
           </div>` : '';
 
         return `
@@ -383,5 +398,7 @@
 
 </body>
 </html>
+
+
 
 
