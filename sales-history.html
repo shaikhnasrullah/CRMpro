@@ -52,6 +52,14 @@
   .badge-pending { background: #FEF2F2; color: var(--red); }
   .badge-confirmed { background: #DBEAFE; color: #1D4ED8; }
 
+  .stage-select {
+    padding: 5px 8px; border-radius: 7px; border: 1.5px solid var(--border);
+    font-size: 12px; font-weight: 700; font-family: 'Inter', sans-serif; cursor: pointer;
+  }
+  .stage-select.stage-Pending { background: #FEF3C7; color: #B45309; border-color: #FDE68A; }
+  .stage-select.stage-Ready { background: #DBEAFE; color: #1D4ED8; border-color: #BFDBFE; }
+  .stage-select.stage-Delivered { background: #D1FAE5; color: #047857; border-color: #A7F3D0; }
+
   .action-btn { border: none; border-radius: 7px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; margin-right: 5px; }
   .btn-edit { background: var(--accent-soft); color: var(--accent); }
   .btn-edit:hover { background: #DCE4FF; }
@@ -113,10 +121,10 @@
       <thead>
         <tr>
           <th>Order No.</th><th>Customer</th><th>Date</th>
-          <th>Payable</th><th>Advance Paid</th><th>Pending</th><th>Status</th><th>Action</th>
+          <th>Payable</th><th>Advance Paid</th><th>Pending</th><th>Payment Mode</th><th>Payment Status</th><th>Order Stage</th><th>Action</th>
         </tr>
       </thead>
-      <tbody id="orders-tbody"><tr><td colspan="8" class="loading">Loading orders...</td></tr></tbody>
+      <tbody id="orders-tbody"><tr><td colspan="10" class="loading">Loading orders...</td></tr></tbody>
     </table>
   </div>
 </div>
@@ -134,6 +142,13 @@
       <label>Amount Received Now (Rs.)</label>
       <input type="number" id="pm-amount" placeholder="e.g. 500" min="0" step="0.01"/>
     </div>
+    <div class="field">
+      <label>Payment Mode</label>
+      <select id="pm-mode" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;outline:none">
+        <option value="Cash">💵 Cash</option>
+        <option value="Online">💳 Online</option>
+      </select>
+    </div>
     <div class="modal-err" id="pm-err">Please enter a valid amount.</div>
     <div class="modal-footer">
       <button class="btn-cancel" onclick="window.closePayModal()">Cancel</button>
@@ -146,7 +161,10 @@
 
 <script type="module">
 import { getDocs, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { requireAuth, tenantCollection } from "./firebase-config.js";
+import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
+import { printInvoice } from "./invoice-print.js";
+
+let shopProfile = {};
 
 let currentUid = null;
 let allOrders = [];
@@ -157,9 +175,13 @@ let currentPayOrder = null; // order object currently open in the payment modal
 const params = new URLSearchParams(window.location.search);
 if (params.get('status') === 'pending') activeTab = 'pending';
 
-requireAuth((user) => {
+requireAuth(async (user) => {
   currentUid = user.uid;
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === activeTab));
+  try {
+    const snap = await getDoc(profileDoc(currentUid));
+    if (snap.exists()) shopProfile = snap.data();
+  } catch (e) { /* profile optional */ }
   loadOrders();
 });
 
@@ -178,7 +200,7 @@ async function loadOrders() {
     updateStats();
     renderTable();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" class="loading">Error loading orders: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="loading">Error loading orders: ${err.message}</td></tr>`;
   }
 }
 
@@ -211,7 +233,7 @@ window.renderTable = function () {
   }
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">${activeTab === 'pending' ? 'No pending payments 🎉' : 'No orders found'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10" class="empty-state">${activeTab === 'pending' ? 'No pending payments 🎉' : 'No orders found'}</td></tr>`;
     return;
   }
 
@@ -226,7 +248,21 @@ window.renderTable = function () {
     else if (pending > 0) statusBadge = `<span class="badge badge-pending">Pending</span>`;
     else statusBadge = `<span class="badge badge-paid">Paid</span>`;
 
+    // Cash vs Online breakdown, from the payments log (older orders saved
+    // before this field existed just show the advance under "Cash").
+    const paymentsLog = o.payments && o.payments.length ? o.payments : (advance > 0 ? [{ amount: advance, mode: 'Cash' }] : []);
+    const cashTotal = paymentsLog.filter(p => p.mode === 'Cash').reduce((s, p) => s + (p.amount || 0), 0);
+    const onlineTotal = paymentsLog.filter(p => p.mode === 'Online').reduce((s, p) => s + (p.amount || 0), 0);
+    let modeCell = '<span style="color:var(--gray);font-size:12px">—</span>';
+    if (cashTotal > 0 || onlineTotal > 0) {
+      const parts = [];
+      if (cashTotal > 0) parts.push(`💵 Rs. ${cashTotal.toFixed(2)}`);
+      if (onlineTotal > 0) parts.push(`💳 Rs. ${onlineTotal.toFixed(2)}`);
+      modeCell = `<span style="font-size:12px">${parts.join('<br/>')}</span>`;
+    }
+
     let actions = '';
+    actions += `<button class="action-btn btn-edit" style="background:var(--accent-soft);color:var(--navy)" onclick="window.printOrder('${o.id}')">🖨️ Print</button>`;
     if (pending > 0) {
       actions += `<button class="action-btn btn-edit" onclick="window.openPayModal('${o.id}')">✏️ Edit / Add Payment</button>`;
     }
@@ -243,7 +279,15 @@ window.renderTable = function () {
         <td>Rs. ${payable.toFixed(2)}</td>
         <td>Rs. ${advance.toFixed(2)}</td>
         <td style="color:${pending > 0 ? 'var(--red)' : 'var(--green)'};font-weight:700">Rs. ${pending.toFixed(2)}</td>
+        <td>${modeCell}</td>
         <td>${statusBadge}</td>
+        <td>
+          <select class="stage-select stage-${o.orderStage || 'Pending'}" onchange="window.updateOrderStage('${o.id}', this.value)">
+            <option value="Pending" ${(o.orderStage || 'Pending') === 'Pending' ? 'selected' : ''}>⏳ Pending</option>
+            <option value="Ready" ${o.orderStage === 'Ready' ? 'selected' : ''}>📦 Ready</option>
+            <option value="Delivered" ${o.orderStage === 'Delivered' ? 'selected' : ''}>✅ Delivered</option>
+          </select>
+        </td>
         <td>${actions}</td>
       </tr>`;
   }).join('');
@@ -261,6 +305,7 @@ window.openPayModal = function (orderId) {
   document.getElementById('pm-paid').textContent = 'Rs. ' + (order.totals?.advance || 0).toFixed(2);
   document.getElementById('pm-due').textContent = 'Rs. ' + (order.totals?.pending || 0).toFixed(2);
   document.getElementById('pm-amount').value = '';
+  document.getElementById('pm-mode').value = 'Cash';
   document.getElementById('pm-err').style.display = 'none';
   document.getElementById('pay-modal').classList.add('open');
 };
@@ -285,6 +330,7 @@ window.savePayment = async function () {
     return;
   }
 
+  const mode = document.getElementById('pm-mode').value;
   const newAdvance = (currentPayOrder.totals?.advance || 0) + amount;
   const newPending = Math.max(0, (currentPayOrder.totals?.payable || 0) - newAdvance);
 
@@ -294,12 +340,14 @@ window.savePayment = async function () {
     await updateDoc(orderRef, {
       "totals.advance": newAdvance,
       "totals.pending": newPending,
-      payments: arrayUnion({ amount, date: new Date().toISOString() })
+      payments: arrayUnion({ amount, mode, type: 'payment', date: new Date().toISOString() })
     });
 
     // Reflect the change locally without a full re-fetch.
     currentPayOrder.totals.advance = newAdvance;
     currentPayOrder.totals.pending = newPending;
+    currentPayOrder.payments = currentPayOrder.payments || [];
+    currentPayOrder.payments.push({ amount, mode, type: 'payment', date: new Date().toISOString() });
 
     window.closePayModal();
     showToast(newPending === 0 ? '✅ Fully paid! Ab "Confirm Order" dabao.' : '✅ Payment record ho gaya.');
@@ -312,6 +360,31 @@ window.savePayment = async function () {
 };
 
 // ---------- CONFIRM ORDER ----------
+// ---------- ORDER STAGE (Pending -> Ready -> Delivered) ----------
+// Separate from payment status: this tracks whether the physical
+// order/frame/lens is ready and handed over to the customer.
+window.updateOrderStage = async function (orderId, newStage) {
+  if (!currentUid) return;
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  try {
+    const orderRef = doc(tenantCollection(currentUid, "orders"), orderId);
+    await updateDoc(orderRef, { orderStage: newStage });
+    order.orderStage = newStage;
+    showToast(`✅ Order stage updated to "${newStage}"`);
+  } catch (e) {
+    alert('Update fail hua: ' + e.message);
+    renderTable(); // revert dropdown to actual stored value
+  }
+};
+
+// ---------- PRINT / REPRINT INVOICE ----------
+window.printOrder = function (orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  printInvoice(order, shopProfile);
+};
+
 window.confirmOrder = async function (orderId) {
   if (!currentUid) return;
   const order = allOrders.find(o => o.id === orderId);
@@ -342,4 +415,3 @@ function showToast(msg) {
 
 </body>
 </html>
-
