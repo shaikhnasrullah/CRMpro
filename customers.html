@@ -148,8 +148,7 @@
   <div class="receipt-box">
     <canvas id="receipt-canvas"></canvas>
     <div class="receipt-actions">
-      <button class="btn-share" onclick="window.shareReceipt()">📲 Send on WhatsApp</button>
-      <button class="btn-dl" onclick="window.downloadReceipt()">⬇ Download</button>
+      <button class="btn-share" style="flex:1" onclick="window.shareReceipt()">📲 Send on WhatsApp</button>
     </div>
     <button class="btn-close-receipt" onclick="window.closeReceipt()">Close</button>
   </div>
@@ -158,6 +157,7 @@
 <script type="module">
   import { query, orderBy, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
+  import { drawReceiptCanvas, shareReceiptOnWhatsApp } from "./receipt-image.js";
 
   let currentUid = null;
   let shopName = 'FRALEN Optical';
@@ -264,15 +264,15 @@
     window.location.href = `customer-history.html?mobile=${mobile}`;
   };
 
-  /* ---------------- WHATSAPP RECEIPT IMAGE ---------------- */
-  let currentReceiptBlob = null;
+  /* ---------------- WHATSAPP RECEIPT IMAGE (shared module) ---------------- */
   let currentReceiptCustomer = null;
 
-  window.openReceipt = function (mobileKey) {
+  window.openReceipt = async function (mobileKey) {
     const c = customersArr.find(x => x.mobile === mobileKey);
     if (!c || !c.lastOrderFull) return;
     currentReceiptCustomer = c;
-    drawReceipt(c, c.lastOrderFull);
+    const canvas = document.getElementById('receipt-canvas');
+    drawReceiptCanvas(canvas, c.name, c.mobile, c.lastOrderFull, shopName);
     document.getElementById('receipt-overlay').classList.add('open');
   };
 
@@ -280,159 +280,11 @@
     document.getElementById('receipt-overlay').classList.remove('open');
   };
 
-  function drawReceipt(customer, order) {
-    const items = order.products || [];
-    const canvas = document.getElementById('receipt-canvas');
-    const W = 600;
-    const rowH = 26;
-    const H = 300 + items.length * rowH + 190; // header + products + totals/footer
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext('2d');
-
-    // Background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, W, H);
-
-    // Header band
-    ctx.fillStyle = '#1B2A6B';
-    ctx.fillRect(0, 0, W, 90);
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '700 26px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(shopName, W / 2, 40);
-    ctx.font = '400 13px Arial';
-    ctx.fillStyle = '#C7D2FE';
-    ctx.fillText('Sales Receipt', W / 2, 65);
-
-    let y = 120;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#111827';
-    ctx.font = '700 16px Arial';
-    ctx.fillText(customer.name || '-', 30, y);
-    ctx.font = '400 13px Arial';
-    ctx.fillStyle = '#6B7280';
-    y += 20;
-    ctx.fillText('Mobile: ' + (customer.mobile !== 'unknown' ? customer.mobile : '-'), 30, y);
-    ctx.textAlign = 'right';
-    const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-IN') : '-';
-    ctx.fillText('Order No: ' + (order.orderNo || '-'), W - 30, y - 20);
-    ctx.fillText('Date: ' + dateStr, W - 30, y);
-
-    y += 20;
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
-
-    // Products table header
-    y += 26;
-    ctx.textAlign = 'left';
-    ctx.font = '700 12px Arial';
-    ctx.fillStyle = '#1B2A6B';
-    ctx.fillText('PRODUCT', 30, y);
-    ctx.textAlign = 'right';
-    ctx.fillText('AMOUNT (Rs)', W - 30, y);
-
-    y += 10;
-    ctx.strokeStyle = '#1B2A6B';
-    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
-
-    ctx.font = '400 13px Arial';
-    items.forEach((it) => {
-      y += rowH;
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#111827';
-      ctx.fillText(`${it.name || it.type || 'Item'}`, 30, y);
-      ctx.textAlign = 'right';
-      ctx.fillText((it.total || 0).toFixed(2), W - 30, y);
-    });
-
-    y += 16;
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
-
-    // Totals
-    const totals = order.totals || {};
-    const totalLines = [
-      ['Basic Amount', totals.basic],
-      ['GST', totals.gst],
-      ['Discount', (totals.itemDiscount || 0) + (totals.couponDiscount || 0) + (totals.loyaltyDiscount || 0)],
-    ];
-    y += 24;
-    ctx.font = '400 12.5px Arial';
-    ctx.fillStyle = '#6B7280';
-    totalLines.forEach(([lbl, val]) => {
-      ctx.textAlign = 'left'; ctx.fillText(lbl, 30, y);
-      ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (val || 0).toFixed(2), W - 30, y);
-      y += 20;
-    });
-
-    ctx.font = '700 16px Arial';
-    ctx.fillStyle = '#1B2A6B';
-    ctx.textAlign = 'left'; ctx.fillText('Payable Amount', 30, y);
-    ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (totals.payable || 0).toFixed(2), W - 30, y);
-
-    y += 24;
-    ctx.font = '400 13px Arial';
-    ctx.fillStyle = '#059669';
-    ctx.textAlign = 'left'; ctx.fillText('Advance Paid', 30, y);
-    ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (totals.advance || 0).toFixed(2), W - 30, y);
-
-    if ((totals.pending || 0) > 0) {
-      y += 20;
-      ctx.fillStyle = '#DC2626';
-      ctx.textAlign = 'left'; ctx.fillText('Balance Due', 30, y);
-      ctx.textAlign = 'right'; ctx.fillText('Rs. ' + (totals.pending || 0).toFixed(2), W - 30, y);
-    }
-
-    // Footer note
-    y += 40;
-    ctx.strokeStyle = '#E5E7EB';
-    ctx.beginPath(); ctx.moveTo(30, y); ctx.lineTo(W - 30, y); ctx.stroke();
-    y += 30;
-    ctx.textAlign = 'center';
-    ctx.font = '600 14px Arial';
-    ctx.fillStyle = '#1B2A6B';
-    ctx.fillText(`Thank you for purchasing from ${shopName}! 🙏`, W / 2, y);
-    y += 20;
-    ctx.font = '400 11.5px Arial';
-    ctx.fillStyle = '#9CA3AF';
-    ctx.fillText('We look forward to serving you again.', W / 2, y);
-
-    canvas.toBlob((blob) => { currentReceiptBlob = blob; }, 'image/png');
-  }
-
   window.shareReceipt = async function () {
-    if (!currentReceiptBlob) { alert('Receipt image ban rahi hai, ek second wait karo.'); return; }
-    const file = new File([currentReceiptBlob], 'receipt.png', { type: 'image/png' });
-    const text = `Thank you for purchasing from ${shopName}! 🙏`;
-
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], text });
-        return;
-      } catch (e) { /* user cancelled share sheet — fall through to link fallback */ }
-    }
-    // Fallback (desktop / unsupported browsers): open WhatsApp chat with the
-    // customer's number and a text note; image gets downloaded to attach manually.
-    window.downloadReceipt();
-    const mobile = (currentReceiptCustomer?.mobile || '').replace(/\D/g, '');
-    const waNumber = mobile.length === 10 ? '91' + mobile : mobile;
-    window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(text + ' (Receipt image downloaded — attach it here)')}`, '_blank');
-  };
-
-  window.downloadReceipt = function () {
-    if (!currentReceiptBlob) return;
-    const url = URL.createObjectURL(currentReceiptBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Receipt_${(currentReceiptCustomer?.name || 'customer').replace(/\s+/g, '_')}.png`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    if (!currentReceiptCustomer) return;
+    await shareReceiptOnWhatsApp(currentReceiptCustomer.name, currentReceiptCustomer.mobile, currentReceiptCustomer.lastOrderFull, shopName);
   };
 </script>
 
 </body>
 </html>
-
