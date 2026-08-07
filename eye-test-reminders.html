@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Eye Test Reminders</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --gray: #6B7280; --border: #C5D3E8;
+    --green: #10B981; --orange: #F59E0B; --red: #EF4444;
+  }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
+
+  .topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+  .topbar-logo span { color: #7B93FF; }
+  .back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .page-title { background: white; padding: 14px 20px; font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--accent); }
+
+  .container { padding: 16px; max-width: 900px; margin: 0 auto; }
+
+  .filter-card { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 16px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .filter-card label { font-size: 13px; font-weight: 700; color: var(--navy); }
+  .filter-card select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+  .filter-card select:focus { border-color: var(--accent); }
+
+  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-card { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 14px 18px; flex: 1; min-width: 140px; }
+  .stat-card .lbl { font-size: 11.5px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .val { font-size: 22px; font-weight: 800; color: var(--navy); margin-top: 4px; }
+  .stat-card .val.orange { color: var(--orange); }
+
+  .search-row { margin-bottom: 14px; }
+  .search-row input { width: 100%; padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
+  .search-row input:focus { border-color: var(--accent); }
+
+  .cust-card {
+    background: white; border-radius: 12px; border: 1px solid var(--border);
+    padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between;
+    align-items: center; gap: 12px; flex-wrap: wrap;
+  }
+  .cust-card.overdue { border-left: 4px solid var(--red); }
+  .cust-card.due-soon { border-left: 4px solid var(--orange); }
+  .cust-info h4 { font-size: 15px; color: var(--navy); font-weight: 800; margin-bottom: 4px; }
+  .cust-meta { font-size: 12px; color: var(--gray); display: flex; gap: 10px; flex-wrap: wrap; }
+  .cust-meta span { background: #F3F4F6; padding: 2px 9px; border-radius: 20px; }
+  .months-badge { font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .months-overdue { background: #FEE2E2; color: #B91C1C; }
+  .months-due { background: #FEF3C7; color: #B45309; }
+
+  .wa-btn {
+    background: #25D366; color: white; border: none; border-radius: 8px;
+    padding: 9px 16px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+  }
+  .wa-btn:hover { background: #1ebe5a; }
+  .wa-btn:disabled { background: #D1D5DB; cursor: not-allowed; }
+
+  .empty-state, .loading { text-align: center; padding: 40px 20px; color: var(--gray); font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+</div>
+
+<div class="page-title">👁️ Eye Test Recall Reminders</div>
+
+<div class="container">
+  <div class="filter-card">
+    <label>Recall after:</label>
+    <select id="threshold" onchange="window.render()">
+      <option value="6">6 Months</option>
+      <option value="12" selected>12 Months (Recommended)</option>
+      <option value="18">18 Months</option>
+      <option value="24">24 Months</option>
+    </select>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="lbl">Due for Recheck</div><div class="val orange" id="stat-due">0</div></div>
+    <div class="stat-card"><div class="lbl">Total Lens Customers</div><div class="val" id="stat-total">0</div></div>
+  </div>
+
+  <div class="search-row">
+    <input type="text" id="search" placeholder="Search customer or mobile..." oninput="window.render()"/>
+  </div>
+
+  <div id="list-body"><div class="loading">Loading eye test records...</div></div>
+</div>
+
+<script type="module">
+import { getDocs, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { requireAuth, tenantCollection, profileDoc } from "./firebase-config.js";
+
+let currentUid = null;
+let shopName = 'FRALEN Optical';
+let customers = []; // one entry per customer with their latest eye test
+
+requireAuth(async (user) => {
+  currentUid = user.uid;
+  try {
+    const snap = await getDoc(profileDoc(currentUid));
+    if (snap.exists() && snap.data().shopName) shopName = snap.data().shopName;
+  } catch (e) { /* profile optional */ }
+  await loadData();
+});
+
+async function loadData() {
+  const body = document.getElementById('list-body');
+  try {
+    const snap = await getDocs(tenantCollection(currentUid, "orders"));
+    const map = {};
+    snap.forEach(docSnap => {
+      const o = docSnap.data();
+      if (!o.hasLens || !o.prescription) return; // only orders with an actual eye test on file
+
+      // Prescription date if captured, otherwise fall back to order date.
+      const testDate = o.prescription.date || o.createdAt;
+      if (!testDate) return;
+
+      const key = (o.mobile || 'unknown').trim() || 'unknown';
+      if (!map[key] || new Date(testDate) > new Date(map[key].testDate)) {
+        map[key] = {
+          mobile: key,
+          name: o.customerName || '(No name)',
+          testDate,
+          doctor: o.prescription.doctor || '',
+          lensType: o.prescription.lensType || '',
+        };
+      }
+    });
+    customers = Object.values(map);
+    window.render();
+  } catch (err) {
+    body.innerHTML = `<div class="empty-state">Error loading data: ${err.message}</div>`;
+  }
+}
+
+function monthsSince(dateStr) {
+  const d = new Date(dateStr);
+  const now = new Date();
+  return (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+}
+
+window.render = function () {
+  const threshold = parseInt(document.getElementById('threshold').value, 10);
+  const term = (document.getElementById('search').value || '').toLowerCase();
+  const body = document.getElementById('list-body');
+
+  let list = customers.map(c => ({ ...c, months: monthsSince(c.testDate) }));
+  document.getElementById('stat-total').textContent = list.length;
+
+  list = list.filter(c => c.months >= threshold);
+  document.getElementById('stat-due').textContent = list.length;
+
+  if (term) {
+    list = list.filter(c => c.name.toLowerCase().includes(term) || c.mobile.toLowerCase().includes(term));
+  }
+  list.sort((a, b) => b.months - a.months); // most overdue first
+
+  if (list.length === 0) {
+    body.innerHTML = `<div class="empty-state">🎉 Koi customer due nahi hai is threshold pe.</div>`;
+    return;
+  }
+
+  body.innerHTML = list.map(c => {
+    const isOverdue = c.months >= threshold + 6;
+    const testDateStr = new Date(c.testDate).toLocaleDateString('en-IN');
+    const hasMobile = c.mobile !== 'unknown';
+    return `
+      <div class="cust-card ${isOverdue ? 'overdue' : 'due-soon'}">
+        <div class="cust-info">
+          <h4>${c.name}</h4>
+          <div class="cust-meta">
+            <span>${hasMobile ? c.mobile : 'No mobile'}</span>
+            <span>Last test: ${testDateStr}</span>
+            <span class="months-badge ${isOverdue ? 'months-overdue' : 'months-due'}">${c.months} months ago</span>
+          </div>
+        </div>
+        <button class="wa-btn" ${hasMobile ? '' : 'disabled'} onclick="window.sendReminder('${c.mobile}', '${c.name.replace(/'/g, "\\'")}', ${c.months})">
+          📲 Send Reminder
+        </button>
+      </div>`;
+  }).join('');
+};
+
+window.sendReminder = function (mobile, name, months) {
+  const message = `Hi ${name}! 👋 It's been ${months} months since your last eye test at ${shopName}. We recommend getting your eyes checked to make sure your prescription is still up to date. Visit us anytime — we'd love to see you again! 👓`;
+  const cleanMobile = mobile.replace(/\D/g, '');
+  const waNumber = cleanMobile.length === 10 ? '91' + cleanMobile : cleanMobile;
+  window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank');
+};
+</script>
+
+</body>
+</html>
