@@ -187,6 +187,17 @@
     loadCustomerData();
   });
 
+  function stageBadge(stage) {
+    const s = stage || 'Pending';
+    const map = {
+      'Pending': ['#FEF3C7', '#B45309', '⏳ Pending'],
+      'Ready': ['#DBEAFE', '#1D4ED8', '📦 Ready'],
+      'Delivered': ['#D1FAE5', '#047857', '✅ Delivered'],
+    };
+    const [bg, fg, label] = map[s] || map['Pending'];
+    return `<span style="background:${bg};color:${fg};padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700">${label}</span>`;
+  }
+
   async function loadCustomerData() {
     try {
       // Scoped to THIS shop's orders only — users/{uid}/orders.
@@ -290,6 +301,17 @@
             </tbody>
           </table>` : '<div style="color:var(--gray);font-size:13px;padding:8px 0">No product details available.</div>';
 
+        const paymentsLog = o.payments && o.payments.length ? o.payments : (payable && (o.totals?.advance || 0) > 0 ? [{ amount: o.totals.advance, mode: 'Cash', type: 'advance', date: o.createdAt }] : []);
+        const paymentsHTML = paymentsLog.length > 0 ? `
+          <div style="margin-top:10px;font-size:12.5px">
+            <div style="font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;font-size:11px">Payment History</div>
+            ${paymentsLog.map(p => `
+              <div style="display:flex;justify-content:space-between;padding:5px 10px;background:#F9FAFB;border-radius:6px;margin-bottom:4px">
+                <span>${p.mode === 'Online' ? '💳 Online' : '💵 Cash'} ${p.type === 'advance' ? '(Advance)' : ''}</span>
+                <span style="font-weight:700">Rs. ${(p.amount || 0).toLocaleString()}</span>
+              </div>`).join('')}
+          </div>` : '';
+
         const rxHTML = (o.prescription && o.hasLens) ? `
           <div class="rx-mini">
             <div class="rx-mini-title">👁 Prescription (This Order)</div>
@@ -328,9 +350,11 @@
                 <div class="detail-item"><div class="detail-lbl">Payable</div><div class="detail-val" style="color:var(--navy);font-size:15px">Rs. ${payable.toLocaleString()}</div></div>
                 <div class="detail-item"><div class="detail-lbl">Advance Paid</div><div class="detail-val" style="color:var(--green)">Rs. ${(o.totals?.advance || 0).toLocaleString()}</div></div>
                 <div class="detail-item"><div class="detail-lbl">Pending</div><div class="detail-val" style="color:${pending > 0 ? 'var(--red)' : 'var(--green)'}">Rs. ${pending.toLocaleString()}</div></div>
+                <div class="detail-item"><div class="detail-lbl">Order Stage</div><div class="detail-val">${stageBadge(o.orderStage)}</div></div>
               </div>
               <div style="font-size:12px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Products Ordered</div>
               ${productsHTML}
+              ${paymentsHTML}
               ${rxHTML}
               ${o.notes ? `<div style="margin-top:10px;font-size:12.5px;color:var(--gray);background:#F9FAFB;padding:8px 12px;border-radius:8px"><b>Notes:</b> ${o.notes}</div>` : ''}
             </div>
@@ -359,4 +383,5 @@
 
 </body>
 </html>
+
 
