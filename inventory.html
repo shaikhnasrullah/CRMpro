@@ -4,452 +4,2134 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FRALEN CRM — Inventory</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --navy: #1B2A6B; --navy-light: #2A3F8F;
-    --accent: #4F6BF0; --accent-soft: #EEF1FE;
-    --gray: #6B7280; --border: #C5D3E8;
-    --green: #10B981; --orange: #F59E0B; --red: #EF4444;
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
-  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
 
-  .topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
-  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
-  .topbar-logo span { color: #7B93FF; }
-  .back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  :root {
+    --navy: #1B2A6B;
+    --navy-light: #2A3F8F;
+    --accent: #4F6BF0;
+    --accent-soft: #EEF1FE;
+    --gray: #6B7280;
+    --border: #C5D3E8;
+    --green: #10B981;
+    --orange: #F59E0B;
+    --red: #EF4444;
+  }
 
-  .page-title { background: white; padding: 14px 20px; font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--accent); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
-  .adj-btn { background: var(--accent); color: white; border: none; padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
-  .adj-btn:hover { background: var(--navy-light); }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #f0f4f8;
+    color: #111827;
+    min-height: 100vh;
+  }
 
-  .branch-bar { display: flex; gap: 8px; background: white; padding: 10px 16px; border-bottom: 1px solid var(--border); overflow-x: auto; }
-  .branch-tab { flex: 0 0 auto; padding: 9px 16px; border-radius: 9px; border: 1.5px solid var(--border); background: white; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; white-space: nowrap; }
-  .branch-tab.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .topbar {
+    background: var(--navy);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
 
-  .container { padding: 16px; max-width: 1100px; margin: 0 auto; }
+  .topbar-logo {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
+    font-weight: 900;
+    color: white;
+    letter-spacing: 3px;
+  }
 
-  .stats-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-  .stat-card { background: white; border-radius: 10px; border: 1px solid var(--border); padding: 14px 18px; flex: 1; min-width: 140px; }
-  .stat-card .lbl { font-size: 11.5px; font-weight: 600; color: var(--gray); text-transform: uppercase; letter-spacing: 0.5px; }
-  .stat-card .val { font-size: 22px; font-weight: 800; color: var(--navy); margin-top: 4px; }
-  .stat-card .val.red { color: var(--red); }
-  .stat-card .val.orange { color: var(--orange); }
+  .topbar-logo span {
+    color: #7B93FF;
+  }
 
-  .search-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
-  .search-row input, .search-row select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; outline: none; }
-  .search-row input { flex: 1; min-width: 160px; }
-  .search-row input:focus, .search-row select:focus { border-color: var(--accent); }
+  .back-btn {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
 
-  .table-wrap { background: white; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; overflow-x: auto; }
-  table { width: 100%; border-collapse: collapse; min-width: 720px; }
-  th { background: var(--navy); color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 12px; text-align: left; }
-  td { padding: 10px 12px; border-bottom: 1px solid #eef1f6; font-size: 13.5px; vertical-align: middle; }
-  tr:last-child td { border-bottom: none; }
-  .p-name { font-weight: 700; color: var(--navy); }
-  .p-meta { font-size: 11.5px; color: var(--gray); }
+  .page-title {
+    background: white;
+    padding: 14px 20px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--navy);
+    border-bottom: 2px solid var(--accent);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11.5px; font-weight: 700; }
-  .badge-ok { background: #D1FAE5; color: #047857; }
-  .badge-low { background: #FEF3C7; color: #B45309; }
-  .badge-out { background: #FEE2E2; color: #B91C1C; }
+  .adj-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
 
-  .empty-state, .loading { text-align: center; padding: 40px 20px; color: var(--gray); font-size: 13.5px; }
+  .adj-btn:hover {
+    background: var(--navy-light);
+  }
+
+  .branch-bar {
+    display: flex;
+    gap: 8px;
+    background: white;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+
+  .branch-tab {
+    flex: 0 0 auto;
+    padding: 9px 16px;
+    border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .branch-tab.active {
+    background: var(--navy);
+    color: white;
+    border-color: var(--navy);
+  }
+
+  .container {
+    padding: 16px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    padding: 14px 18px;
+    flex: 1;
+    min-width: 140px;
+  }
+
+  .stat-card .lbl {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .stat-card .val {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-top: 4px;
+  }
+
+  .stat-card .val.red {
+    color: var(--red);
+  }
+
+  .stat-card .val.orange {
+    color: var(--orange);
+  }
+
+  .search-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  .search-row input,
+  .search-row select {
+    padding: 9px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
+
+  .search-row input {
+    flex: 1;
+    min-width: 160px;
+  }
+
+  .search-row input:focus,
+  .search-row select:focus {
+    border-color: var(--accent);
+  }
+
+  .table-wrap {
+    background: white;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 720px;
+  }
+
+  th {
+    background: var(--navy);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eef1f6;
+    font-size: 13.5px;
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+
+  .p-name {
+    font-weight: 700;
+    color: var(--navy);
+  }
+
+  .p-meta {
+    font-size: 11.5px;
+    color: var(--gray);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+
+  .badge-ok {
+    background: #D1FAE5;
+    color: #047857;
+  }
+
+  .badge-low {
+    background: #FEF3C7;
+    color: #B45309;
+  }
+
+  .badge-out {
+    background: #FEE2E2;
+    color: #B91C1C;
+  }
+
+  .empty-state,
+  .loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--gray);
+    font-size: 13.5px;
+  }
 
   /* MODAL */
-  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
-  .modal-overlay.open { display: flex; }
-  .modal { background: white; border-radius: 16px; padding: 24px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-  .modal h2 { font-size: 17px; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
-  .field { margin-bottom: 14px; }
-  .field label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
-  .field select, .field input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; font-family: 'Inter', sans-serif; outline: none; }
-  .field select:focus, .field input:focus { border-color: var(--accent); }
-  .mode-toggle { display: flex; gap: 8px; }
-  .mode-btn { flex: 1; padding: 9px; border-radius: 8px; border: 1.5px solid var(--border); background: white; font-size: 13px; font-weight: 700; cursor: pointer; }
-  .mode-btn.active-add { background: #D1FAE5; border-color: var(--green); color: #047857; }
-  .mode-btn.active-remove { background: #FEE2E2; border-color: var(--red); color: #B91C1C; }
-  .modal-err { color: var(--red); font-size: 12.5px; margin-top: 4px; display: none; }
-  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-  .btn-cancel { padding: 9px 18px; border: 1.5px solid var(--border); border-radius: 9px; background: white; font-size: 13px; font-weight: 600; cursor: pointer; color: var(--gray); }
-  .btn-save { padding: 9px 20px; background: var(--navy); color: white; border: none; border-radius: 9px; font-size: 13px; font-weight: 700; cursor: pointer; }
-  .btn-save:hover { background: var(--navy-light); }
 
-  .success-toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: white; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; z-index: 300; }
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open {
+    display: flex;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+  }
+
+  .modal h2 {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--navy);
+    margin-bottom: 16px;
+  }
+
+  .field {
+    margin-bottom: 14px;
+  }
+
+  .field label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+
+  .field select,
+  .field input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
+
+  .field select:focus,
+  .field input:focus {
+    border-color: var(--accent);
+  }
+
+  .mode-toggle {
+    display: flex;
+    gap: 8px;
+  }
+
+  .mode-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: white;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .mode-btn.active-add {
+    background: #D1FAE5;
+    border-color: var(--green);
+    color: #047857;
+  }
+
+  .mode-btn.active-remove {
+    background: #FEE2E2;
+    border-color: var(--red);
+    color: #B91C1C;
+  }
+
+  .modal-err {
+    color: var(--red);
+    font-size: 12.5px;
+    margin-top: 4px;
+    display: none;
+  }
+
+  .modal-footer {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 18px;
+  }
+
+  .btn-cancel {
+    padding: 9px 18px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    background: white;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--gray);
+  }
+
+  .btn-save {
+    padding: 9px 20px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .btn-save:hover {
+    background: var(--navy-light);
+  }
+
+  .success-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--green);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 300;
+  }
 </style>
 </head>
+
 <body>
 
 <div class="topbar">
   <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
-  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+
+  <button class="back-btn"
+          onclick="window.location.href='dashboard.html'">
+    ← Dashboard
+  </button>
 </div>
 
 <div class="page-title">
   <span>Inventory</span>
-  <button class="adj-btn" onclick="window.openAdjustModal()">⚙️ Stock Adjustment</button>
+
+  <button class="adj-btn"
+          onclick="window.openAdjustModal()">
+    ⚙️ Stock Adjustment
+  </button>
 </div>
 
 <div class="branch-bar" id="branch-bar">
-  <button class="branch-tab active" data-branch="All" onclick="window.setBranch('All')">All Branches</button>
-  <button class="branch-tab" data-branch="FRALEN Main Branch" onclick="window.setBranch('FRALEN Main Branch')">Main Branch</button>
-  <button class="branch-tab" data-branch="FRALEN Branch 1" onclick="window.setBranch('FRALEN Branch 1')">Branch 1</button>
-  <button class="branch-tab" data-branch="FRALEN Branch 2" onclick="window.setBranch('FRALEN Branch 2')">Branch 2</button>
-  <button class="branch-tab" data-branch="FRALEN Branch 3" onclick="window.setBranch('FRALEN Branch 3')">Branch 3</button>
+
+  <button class="branch-tab active"
+          data-branch="All"
+          onclick="window.setBranch('All')">
+    All Branches
+  </button>
+
+  <button class="branch-tab"
+          data-branch="FRALEN Main Branch"
+          onclick="window.setBranch('FRALEN Main Branch')">
+    Main Branch
+  </button>
+
+  <button class="branch-tab"
+          data-branch="FRALEN Branch 1"
+          onclick="window.setBranch('FRALEN Branch 1')">
+    Branch 1
+  </button>
+
+  <button class="branch-tab"
+          data-branch="FRALEN Branch 2"
+          onclick="window.setBranch('FRALEN Branch 2')">
+    Branch 2
+  </button>
+
+  <button class="branch-tab"
+          data-branch="FRALEN Branch 3"
+          onclick="window.setBranch('FRALEN Branch 3')">
+    Branch 3
+  </button>
+
 </div>
 
 <div class="container">
+
   <div class="stats-row">
-    <div class="stat-card"><div class="lbl">Total Products</div><div class="val" id="stat-products">0</div></div>
-    <div class="stat-card"><div class="lbl">Total Stock (Units)</div><div class="val" id="stat-units">0</div></div>
-    <div class="stat-card"><div class="lbl">Stock Value (Rs)</div><div class="val" id="stat-value">0</div></div>
-    <div class="stat-card"><div class="lbl">Low Stock</div><div class="val orange" id="stat-low">0</div></div>
-    <div class="stat-card"><div class="lbl">Out of Stock</div><div class="val red" id="stat-out">0</div></div>
+
+    <div class="stat-card">
+      <div class="lbl">Total Products</div>
+      <div class="val" id="stat-products">0</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="lbl">Total Stock (Units)</div>
+      <div class="val" id="stat-units">0</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="lbl">Stock Value (Rs)</div>
+      <div class="val" id="stat-value">0</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="lbl">Low Stock</div>
+      <div class="val orange" id="stat-low">0</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="lbl">Out of Stock</div>
+      <div class="val red" id="stat-out">0</div>
+    </div>
+
   </div>
 
   <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-    <button class="branch-tab active" data-view="list" onclick="window.setView('list')" style="border-radius:9px">📋 Inventory List</button>
-    <button class="branch-tab" data-view="alerts" onclick="window.setView('alerts')" style="border-radius:9px">⚠️ Low Stock Alerts</button>
-    <button class="branch-tab" data-view="movements" onclick="window.setView('movements')" style="border-radius:9px">📜 Stock Movements</button>
+
+    <button class="branch-tab active"
+            data-view="list"
+            onclick="window.setView('list')"
+            style="border-radius:9px">
+      📋 Inventory List
+    </button>
+
+    <button class="branch-tab"
+            data-view="alerts"
+            onclick="window.setView('alerts')"
+            style="border-radius:9px">
+      ⚠️ Low Stock Alerts
+    </button>
+
+    <button class="branch-tab"
+            data-view="movements"
+            onclick="window.setView('movements')"
+            style="border-radius:9px">
+      📜 Stock Movements
+    </button>
+
   </div>
 
+  <!-- INVENTORY LIST -->
+
   <div id="view-list">
+
     <div class="search-row">
-      <input type="text" id="search" placeholder="Search product, brand or SKU..." oninput="window.renderInventory()"/>
-      <select id="stock-filter" onchange="window.renderInventory()">
+
+      <input
+        type="text"
+        id="search"
+        placeholder="Search product, brand or SKU..."
+        oninput="window.renderInventory()"
+      />
+
+      <select
+        id="stock-filter"
+        onchange="window.renderInventory()"
+      >
         <option value="all">All Stock Levels</option>
         <option value="low">Low Stock only</option>
         <option value="out">Out of Stock only</option>
       </select>
+
     </div>
 
     <div class="table-wrap">
+
       <table>
+
         <thead>
+
           <tr>
-            <th>Product</th><th id="stock-col-head">Stock (All Branches)</th><th>Reorder Level</th><th>Stock Value (Rs)</th><th>Status</th>
+            <th>Product</th>
+            <th id="stock-col-head">Stock (All Branches)</th>
+            <th>Reorder Level</th>
+            <th>Stock Value (Rs)</th>
+            <th>Status</th>
           </tr>
+
         </thead>
-        <tbody id="inv-tbody"><tr><td colspan="5" class="loading">Loading inventory...</td></tr></tbody>
+
+        <tbody id="inv-tbody">
+
+          <tr>
+            <td colspan="5" class="loading">
+              Loading inventory...
+            </td>
+          </tr>
+
+        </tbody>
+
       </table>
+
     </div>
+
   </div>
+
+  <!-- ALERTS -->
 
   <div id="view-alerts" style="display:none">
+
     <div class="table-wrap">
+
       <table>
-        <thead><tr><th>Product</th><th>Branch Stock</th><th>Reorder Level</th><th>Status</th></tr></thead>
-        <tbody id="alerts-tbody"><tr><td colspan="4" class="loading">Loading...</td></tr></tbody>
+
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>Branch Stock</th>
+            <th>Reorder Level</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody id="alerts-tbody">
+
+          <tr>
+            <td colspan="4" class="loading">
+              Loading...
+            </td>
+          </tr>
+
+        </tbody>
+
       </table>
+
     </div>
+
   </div>
+
+  <!-- MOVEMENTS -->
 
   <div id="view-movements" style="display:none">
+
     <div class="table-wrap">
+
       <table>
-        <thead><tr><th>Date</th><th>Product</th><th>Branch</th><th>Type</th><th>Qty</th><th>Reason</th><th>Stock After</th></tr></thead>
-        <tbody id="moves-tbody"><tr><td colspan="7" class="loading">Loading movement history...</td></tr></tbody>
+
+        <thead>
+
+          <tr>
+            <th>Date</th>
+            <th>Product</th>
+            <th>Branch</th>
+            <th>Type</th>
+            <th>Qty</th>
+            <th>Reason</th>
+            <th>Stock After</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="moves-tbody">
+
+          <tr>
+            <td colspan="7" class="loading">
+              Loading movement history...
+            </td>
+          </tr>
+
+        </tbody>
+
       </table>
+
     </div>
+
   </div>
+
 </div>
 
+
+<!-- ========================================================= -->
 <!-- STOCK ADJUSTMENT MODAL -->
+<!-- ========================================================= -->
+
 <div class="modal-overlay" id="adj-modal">
+
   <div class="modal">
+
     <h2>⚙️ Stock Adjustment</h2>
+
+    <!-- PRODUCT -->
+
     <div class="field">
+
       <label>Product</label>
+
       <select id="adj-product">
-       <option value="FRAMES">FRAMES</option>
-        <option value="LENSES">LENSES</option>
-        <option value="ACCESSORIES">ACCESSORIES</option>
-        <option value="CONTACT LENSES">CONTACT LENSES</option>
-        <option value="DROPS">DROPS</option>
+
+        <option value="">
+          -- Select Product --
+        </option>
+
+        <option value="FRAMES">
+          FRAMES
+        </option>
+
+        <option value="LENSES">
+          LENSES
+        </option>
+
+        <option value="ACCESSORIES">
+          ACCESSORIES
+        </option>
+
+        <option value="CONTACT LENSES">
+          CONTACT LENSES
+        </option>
+
+        <option value="DROPS">
+          DROPS
+        </option>
+
       </select>
+
     </div>
+
+
+    <!-- BRANCH -->
+
     <div class="field">
+
       <label>Branch</label>
+
       <select id="adj-branch">
-        <option value="FRALEN Main Branch">FRALEN Main Branch</option>
-        <option value="FRALEN Branch 1">FRALEN Branch 1</option>
-        <option value="FRALEN Branch 2">FRALEN Branch 2</option>
-        <option value="FRALEN Branch 3">FRALEN Branch 3</option>
+
+        <option value="FRALEN Main Branch">
+          FRALEN Main Branch
+        </option>
+
+        <option value="FRALEN Branch 1">
+          FRALEN Branch 1
+        </option>
+
+        <option value="FRALEN Branch 2">
+          FRALEN Branch 2
+        </option>
+
+        <option value="FRALEN Branch 3">
+          FRALEN Branch 3
+        </option>
+
       </select>
+
     </div>
+
+
+    <!-- ADJUSTMENT TYPE -->
+
     <div class="field">
+
       <label>Adjustment Type</label>
+
       <div class="mode-toggle">
-        <button type="button" class="mode-btn active-add" id="mode-add" onclick="window.setAdjMode('add')">➕ Add Stock</button>
-        <button type="button" class="mode-btn" id="mode-remove" onclick="window.setAdjMode('remove')">➖ Remove Stock</button>
+
+        <button
+          type="button"
+          class="mode-btn active-add"
+          id="mode-add"
+          onclick="window.setAdjMode('add')">
+          ➕ Add Stock
+        </button>
+
+        <button
+          type="button"
+          class="mode-btn"
+          id="mode-remove"
+          onclick="window.setAdjMode('remove')">
+          ➖ Remove Stock
+        </button>
+
       </div>
+
     </div>
+
+
+    <!-- QUANTITY -->
+
     <div class="field">
+
       <label>Quantity</label>
-      <input type="number" id="adj-qty" placeholder="e.g. 5" min="1"/>
+
+      <input
+        type="number"
+        id="adj-qty"
+        placeholder="e.g. 5"
+        min="1"
+      />
+
     </div>
+
+
+    <!-- REASON -->
+
     <div class="field">
+
       <label>Reason</label>
+
       <select id="adj-reason">
-        <option>Physical Count Correction</option>
-        <option>Damage</option>
-        <option>Lost</option>
-        <option>Found</option>
-        <option>Other</option>
+
+        <option>
+          Physical Count Correction
+        </option>
+
+        <option>
+          Damage
+        </option>
+
+        <option>
+          Lost
+        </option>
+
+        <option>
+          Found
+        </option>
+
+        <option>
+          Other
+        </option>
+
       </select>
+
     </div>
-    <div class="modal-err" id="adj-err">Please fill all fields correctly.</div>
+
+
+    <div
+      class="modal-err"
+      id="adj-err">
+      Please fill all fields correctly.
+    </div>
+
+
     <div class="modal-footer">
-      <button class="btn-cancel" onclick="window.closeAdjustModal()">Cancel</button>
-      <button class="btn-save" onclick="window.saveAdjustment()">Save Adjustment</button>
+
+      <button
+        class="btn-cancel"
+        onclick="window.closeAdjustModal()">
+        Cancel
+      </button>
+
+      <button
+        class="btn-save"
+        onclick="window.saveAdjustment()">
+        Save Adjustment
+      </button>
+
     </div>
+
   </div>
+
 </div>
 
-<div class="success-toast" id="toast">✅ Updated!</div>
+
+<div
+  class="success-toast"
+  id="toast">
+  ✅ Updated!
+</div>
+
 
 <script type="module">
-import { getDocs, doc, updateDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { requireAuth, tenantCollection } from "./firebase-config.js";
 
-const BRANCHES = ['FRALEN Main Branch', 'FRALEN Branch 1', 'FRALEN Branch 2', 'FRALEN Branch 3'];
+import {
+  getDocs,
+  doc,
+  updateDoc,
+  addDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import {
+  requireAuth,
+  tenantCollection
+} from "./firebase-config.js";
+
+
+/* =========================================================
+   CONSTANTS
+========================================================= */
+
+const BRANCHES = [
+  'FRALEN Main Branch',
+  'FRALEN Branch 1',
+  'FRALEN Branch 2',
+  'FRALEN Branch 3'
+];
+
+
+/*
+  THESE ARE THE ONLY PRODUCT OPTIONS
+  SHOWN IN STOCK ADJUSTMENT.
+*/
+
+const ADJUSTMENT_PRODUCTS = [
+  'FRAMES',
+  'LENSES',
+  'ACCESSORIES',
+  'CONTACT LENSES',
+  'DROPS'
+];
+
+
+/* =========================================================
+   VARIABLES
+========================================================= */
 
 let currentUid = null;
+
 let allProducts = [];
+
 let activeBranch = 'All';
+
 let adjMode = 'add';
 
+let currentView = 'list';
+
+let allMovements = null;
+
+
+/* =========================================================
+   AUTH
+========================================================= */
+
 requireAuth((user) => {
+
   currentUid = user.uid;
+
   loadInventory();
+
 });
 
-let currentView = 'list';
-let allMovements = null; // lazy-loaded only when the Movements tab is opened
 
-window.setView = function (view) {
+/* =========================================================
+   VIEW SWITCHING
+========================================================= */
+
+window.setView = function(view) {
+
   currentView = view;
-  document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
-  document.getElementById('view-list').style.display = view === 'list' ? '' : 'none';
-  document.getElementById('view-alerts').style.display = view === 'alerts' ? '' : 'none';
-  document.getElementById('view-movements').style.display = view === 'movements' ? '' : 'none';
-  if (view === 'alerts') renderAlerts();
-  if (view === 'movements') loadMovements();
+
+  document
+    .querySelectorAll('[data-view]')
+    .forEach(button => {
+
+      button.classList.toggle(
+        'active',
+        button.dataset.view === view
+      );
+
+    });
+
+
+  document.getElementById('view-list').style.display =
+    view === 'list' ? '' : 'none';
+
+
+  document.getElementById('view-alerts').style.display =
+    view === 'alerts' ? '' : 'none';
+
+
+  document.getElementById('view-movements').style.display =
+    view === 'movements' ? '' : 'none';
+
+
+  if (view === 'alerts') {
+    renderAlerts();
+  }
+
+
+  if (view === 'movements') {
+    loadMovements();
+  }
+
 };
 
-function renderAlerts() {
-  const tbody = document.getElementById('alerts-tbody');
-  const list = allProducts
-    .map(p => ({ ...p, _stock: stockFor(p, activeBranch) }))
-    .filter(p => p._stock <= 0 || (p.reorderLevel > 0 && p._stock <= p.reorderLevel));
 
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" class="empty-state">🎉 Koi low stock ya out-of-stock item nahi hai${activeBranch !== 'All' ? ' (' + activeBranch + ')' : ''}.</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = list.map(p => {
-    const badge = p._stock <= 0 ? `<span class="badge badge-out">Out of Stock</span>` : `<span class="badge badge-low">Low Stock</span>`;
-    return `<tr>
-      <td><div class="p-name">${p.name || '(No name)'}</div><div class="p-meta">${p.category || ''}${p.brand ? ' · ' + p.brand : ''}</div></td>
-      <td>${p._stock}</td><td>${p.reorderLevel || '-'}</td><td>${badge}</td>
-    </tr>`;
-  }).join('');
-}
-
-async function loadMovements() {
-  const tbody = document.getElementById('moves-tbody');
-  tbody.innerHTML = '<tr><td colspan="7" class="loading">Loading movement history...</td></tr>';
-  try {
-    if (allMovements === null) {
-      const snap = await getDocs(tenantCollection(currentUid, "stockAdjustments"));
-      allMovements = snap.docs.map(d => d.data());
-      allMovements.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-    }
-    if (allMovements.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" class="empty-state">
-        Abhi tak koi stock movement record nahi hua.<br/>
-        <span style="font-size:12px">Note: "Stock Adjustment" button se kiya gaya har manual change yahan log hota hai. Purchase se Stock-In aur Sale se Stock-Out abhi automatic nahi hai — jab chaho main woh auto-linking bhi jod sakta hoon.</span>
-      </td></tr>`;
-      return;
-    }
-    tbody.innerHTML = allMovements.map(m => {
-      const typeLabel = m.type === 'add' ? '<span class="badge badge-ok">➕ Stock In</span>' : '<span class="badge badge-out">➖ Stock Out</span>';
-      const dateStr = m.createdAt ? new Date(m.createdAt).toLocaleString('en-IN') : '-';
-      return `<tr>
-        <td>${dateStr}</td><td>${m.productName || '-'}</td><td>${(m.branch || '').replace('FRALEN ', '')}</td>
-        <td>${typeLabel}</td><td>${m.qty}</td><td>${m.reason || '-'}</td><td>${m.stockAfter ?? '-'}</td>
-      </tr>`;
-    }).join('');
-  } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="7" class="loading">Error: ${err.message}</td></tr>`;
-  }
-}
+/* =========================================================
+   LOAD INVENTORY
+========================================================= */
 
 async function loadInventory() {
+
   const tbody = document.getElementById('inv-tbody');
+
   try {
-    const snap = await getDocs(tenantCollection(currentUid, "products"));
-    allProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const snap = await getDocs(
+      tenantCollection(currentUid, "products")
+    );
+
+
+    allProducts = snap.docs.map(docSnap => ({
+      id: docSnap.id,
+      ...docSnap.data()
+    }));
+
+
+    /*
+      IMPORTANT:
+      DO NOT use Firebase products to populate
+      the adjustment dropdown.
+
+      We use the 5 fixed options above.
+    */
+
     populateAdjustProductDropdown();
+
+
     renderInventory();
+
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="loading">Error loading inventory: ${err.message}</td></tr>`;
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="loading">
+          Error loading inventory: ${escapeHtml(err.message)}
+        </td>
+      </tr>
+    `;
+
   }
+
 }
 
-function stockFor(p, branch) {
-  const sb = p.stockByBranch || {};
-  if (branch === 'All') return BRANCHES.reduce((s, b) => s + (Number(sb[b]) || 0), 0);
-  return Number(sb[branch]) || 0;
+
+/* =========================================================
+   PRODUCT DROPDOWN
+========================================================= */
+
+function populateAdjustProductDropdown() {
+
+  const select = document.getElementById('adj-product');
+
+
+  /*
+    Clear old options.
+  */
+
+  select.innerHTML = `
+    <option value="">
+      -- Select Product --
+    </option>
+  `;
+
+
+  /*
+    Add EXACTLY the options requested.
+  */
+
+  ADJUSTMENT_PRODUCTS.forEach(productName => {
+
+    const option = document.createElement('option');
+
+    option.value = productName;
+
+    option.textContent = productName;
+
+    select.appendChild(option);
+
+  });
+
 }
 
-window.setBranch = function (branch) {
+
+/* =========================================================
+   STOCK CALCULATION
+========================================================= */
+
+function stockFor(product, branch) {
+
+  const stockByBranch =
+    product.stockByBranch || {};
+
+
+  if (branch === 'All') {
+
+    return BRANCHES.reduce(
+      (total, branchName) =>
+        total + (Number(stockByBranch[branchName]) || 0),
+      0
+    );
+
+  }
+
+
+  return Number(
+    stockByBranch[branch]
+  ) || 0;
+
+}
+
+
+/* =========================================================
+   BRANCH
+========================================================= */
+
+window.setBranch = function(branch) {
+
   activeBranch = branch;
-  document.querySelectorAll('.branch-tab[data-branch]').forEach(b => b.classList.toggle('active', b.dataset.branch === branch));
-  document.getElementById('stock-col-head').textContent = branch === 'All' ? 'Stock (All Branches)' : `Stock — ${branch.replace('FRALEN ', '')}`;
-  if (currentView === 'alerts') renderAlerts();
-  else renderInventory();
+
+
+  document
+    .querySelectorAll('.branch-tab[data-branch]')
+    .forEach(button => {
+
+      button.classList.toggle(
+        'active',
+        button.dataset.branch === branch
+      );
+
+    });
+
+
+  document.getElementById(
+    'stock-col-head'
+  ).textContent =
+    branch === 'All'
+      ? 'Stock (All Branches)'
+      : `Stock — ${branch.replace('FRALEN ', '')}`;
+
+
+  if (currentView === 'alerts') {
+
+    renderAlerts();
+
+  } else {
+
+    renderInventory();
+
+  }
+
 };
 
-window.renderInventory = function () {
-  const term = (document.getElementById('search').value || '').toLowerCase();
-  const filter = document.getElementById('stock-filter').value;
-  const tbody = document.getElementById('inv-tbody');
 
-  let list = allProducts.map(p => ({ ...p, _stock: stockFor(p, activeBranch) }));
+/* =========================================================
+   INVENTORY RENDER
+========================================================= */
 
-  if (term) {
-    list = list.filter(p =>
-      (p.name || '').toLowerCase().includes(term) ||
-      (p.brand || '').toLowerCase().includes(term) ||
-      (p.sku || '').toLowerCase().includes(term)
+window.renderInventory = function() {
+
+  const search =
+    (
+      document.getElementById('search').value || ''
+    ).toLowerCase();
+
+
+  const filter =
+    document.getElementById('stock-filter').value;
+
+
+  const tbody =
+    document.getElementById('inv-tbody');
+
+
+  let list = allProducts.map(product => ({
+
+    ...product,
+
+    _stock: stockFor(
+      product,
+      activeBranch
+    )
+
+  }));
+
+
+  if (search) {
+
+    list = list.filter(product =>
+
+      (product.name || '')
+        .toLowerCase()
+        .includes(search)
+
+      ||
+
+      (product.brand || '')
+        .toLowerCase()
+        .includes(search)
+
+      ||
+
+      (product.sku || '')
+        .toLowerCase()
+        .includes(search)
+
     );
-  }
-  if (filter === 'low') list = list.filter(p => p._stock > 0 && p.reorderLevel > 0 && p._stock <= p.reorderLevel);
-  if (filter === 'out') list = list.filter(p => p._stock <= 0);
 
-  // Stats always reflect the selected branch, regardless of search/filter.
+  }
+
+
+  if (filter === 'low') {
+
+    list = list.filter(product =>
+
+      product._stock > 0 &&
+
+      Number(product.reorderLevel) > 0 &&
+
+      product._stock <=
+      Number(product.reorderLevel)
+
+    );
+
+  }
+
+
+  if (filter === 'out') {
+
+    list = list.filter(product =>
+      product._stock <= 0
+    );
+
+  }
+
+
   updateStats();
 
+
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">${allProducts.length === 0 ? 'Abhi tak koi product add nahi hua.' : 'Is filter/search se koi product nahi mila.'}</td></tr>`;
+
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-state">
+
+          ${
+            allProducts.length === 0
+              ? 'Abhi tak koi product add nahi hua.'
+              : 'Is filter/search se koi product nahi mila.'
+          }
+
+        </td>
+      </tr>
+    `;
+
     return;
+
   }
 
-  tbody.innerHTML = list.map(p => {
-    const stock = p._stock;
-    const reorder = Number(p.reorderLevel) || 0;
-    let badge;
-    if (stock <= 0) badge = `<span class="badge badge-out">Out of Stock</span>`;
-    else if (reorder > 0 && stock <= reorder) badge = `<span class="badge badge-low">Low Stock</span>`;
-    else badge = `<span class="badge badge-ok">In Stock</span>`;
 
-    const value = stock * (Number(p.purchasePrice) || 0);
+  tbody.innerHTML = list.map(product => {
+
+    const stock =
+      product._stock;
+
+
+    const reorder =
+      Number(product.reorderLevel) || 0;
+
+
+    let badge;
+
+
+    if (stock <= 0) {
+
+      badge =
+        `<span class="badge badge-out">
+          Out of Stock
+        </span>`;
+
+    }
+
+    else if (
+      reorder > 0 &&
+      stock <= reorder
+    ) {
+
+      badge =
+        `<span class="badge badge-low">
+          Low Stock
+        </span>`;
+
+    }
+
+    else {
+
+      badge =
+        `<span class="badge badge-ok">
+          In Stock
+        </span>`;
+
+    }
+
+
+    const value =
+      stock *
+      (Number(product.purchasePrice) || 0);
+
 
     return `
       <tr>
-        <td><div class="p-name">${p.name || '(No name)'}</div><div class="p-meta">${p.category || ''}${p.brand ? ' · ' + p.brand : ''}${p.sku ? ' · SKU: ' + p.sku : ''}</div></td>
-        <td>${stock}</td>
-        <td>${reorder || '-'}</td>
-        <td>Rs. ${value.toFixed(2)}</td>
-        <td>${badge}</td>
-      </tr>`;
+
+        <td>
+
+          <div class="p-name">
+            ${escapeHtml(product.name || '(No name)')}
+          </div>
+
+          <div class="p-meta">
+
+            ${escapeHtml(product.category || '')}
+
+            ${
+              product.brand
+                ? ' · ' + escapeHtml(product.brand)
+                : ''
+            }
+
+            ${
+              product.sku
+                ? ' · SKU: ' + escapeHtml(product.sku)
+                : ''
+            }
+
+          </div>
+
+        </td>
+
+        <td>
+          ${stock}
+        </td>
+
+        <td>
+          ${reorder || '-'}
+        </td>
+
+        <td>
+          Rs. ${value.toFixed(2)}
+        </td>
+
+        <td>
+          ${badge}
+        </td>
+
+      </tr>
+    `;
+
   }).join('');
+
 };
+
+
+/* =========================================================
+   STATS
+========================================================= */
 
 function updateStats() {
-  const list = allProducts.map(p => ({ ...p, _stock: stockFor(p, activeBranch) }));
-  const totalUnits = list.reduce((s, p) => s + p._stock, 0);
-  const totalValue = list.reduce((s, p) => s + p._stock * (Number(p.purchasePrice) || 0), 0);
-  const lowCount = list.filter(p => p._stock > 0 && p.reorderLevel > 0 && p._stock <= p.reorderLevel).length;
-  const outCount = list.filter(p => p._stock <= 0).length;
 
-  document.getElementById('stat-products').textContent = list.length;
-  document.getElementById('stat-units').textContent = totalUnits;
-  document.getElementById('stat-value').textContent = totalValue.toFixed(2);
-  document.getElementById('stat-low').textContent = lowCount;
-  document.getElementById('stat-out').textContent = outCount;
+  const list =
+    allProducts.map(product => ({
+
+      ...product,
+
+      _stock:
+        stockFor(
+          product,
+          activeBranch
+        )
+
+    }));
+
+
+  const totalUnits =
+    list.reduce(
+      (sum, product) =>
+        sum + product._stock,
+      0
+    );
+
+
+  const totalValue =
+    list.reduce(
+      (sum, product) =>
+        sum +
+        product._stock *
+        (Number(product.purchasePrice) || 0),
+      0
+    );
+
+
+  const lowCount =
+    list.filter(product =>
+
+      product._stock > 0 &&
+
+      Number(product.reorderLevel) > 0 &&
+
+      product._stock <=
+      Number(product.reorderLevel)
+
+    ).length;
+
+
+  const outCount =
+    list.filter(product =>
+      product._stock <= 0
+    ).length;
+
+
+  document.getElementById(
+    'stat-products'
+  ).textContent = list.length;
+
+
+  document.getElementById(
+    'stat-units'
+  ).textContent = totalUnits;
+
+
+  document.getElementById(
+    'stat-value'
+  ).textContent = totalValue.toFixed(2);
+
+
+  document.getElementById(
+    'stat-low'
+  ).textContent = lowCount;
+
+
+  document.getElementById(
+    'stat-out'
+  ).textContent = outCount;
+
 }
 
-/* ---------------- STOCK ADJUSTMENT ---------------- */
-function populateAdjustProductDropdown() {
-  const sel = document.getElementById('adj-product');
-  sel.innerHTML = '<option value="">-- Select Product --</option>' +
-    allProducts.map(p => `<option value="${p.id}">${p.name}${p.sku ? ' (' + p.sku + ')' : ''}</option>`).join('');
-}
 
-window.openAdjustModal = function () {
-  document.getElementById('adj-qty').value = '';
-  document.getElementById('adj-err').style.display = 'none';
-  window.setAdjMode('add');
-  document.getElementById('adj-modal').classList.add('open');
-};
-window.closeAdjustModal = function () {
-  document.getElementById('adj-modal').classList.remove('open');
-};
+/* =========================================================
+   ALERTS
+========================================================= */
 
-window.setAdjMode = function (mode) {
-  adjMode = mode;
-  document.getElementById('mode-add').classList.toggle('active-add', mode === 'add');
-  document.getElementById('mode-remove').classList.toggle('active-remove', mode === 'remove');
-};
+function renderAlerts() {
 
-window.saveAdjustment = async function () {
-  const productId = document.getElementById('adj-product').value;
-  const branch = document.getElementById('adj-branch').value;
-  const qty = parseInt(document.getElementById('adj-qty').value, 10);
-  const reason = document.getElementById('adj-reason').value;
-  const err = document.getElementById('adj-err');
+  const tbody =
+    document.getElementById('alerts-tbody');
 
-  if (!productId || !qty || qty <= 0) {
-    err.textContent = 'Product aur sahi quantity select karo.';
-    err.style.display = 'block';
+
+  const list =
+    allProducts
+
+      .map(product => ({
+
+        ...product,
+
+        _stock:
+          stockFor(
+            product,
+            activeBranch
+          )
+
+      }))
+
+      .filter(product =>
+
+        product._stock <= 0
+
+        ||
+
+        (
+          Number(product.reorderLevel) > 0
+          &&
+          product._stock <=
+          Number(product.reorderLevel)
+        )
+
+      );
+
+
+  if (list.length === 0) {
+
+    tbody.innerHTML = `
+      <tr>
+
+        <td
+          colspan="4"
+          class="empty-state">
+
+          🎉 Koi low stock ya out-of-stock item nahi hai
+          ${
+            activeBranch !== 'All'
+              ? ' (' + activeBranch + ')'
+              : ''
+          }.
+
+        </td>
+
+      </tr>
+    `;
+
     return;
+
   }
 
-  const product = allProducts.find(p => p.id === productId);
-  const sb = { ...(product.stockByBranch || {}) };
-  const currentBranchStock = Number(sb[branch]) || 0;
-  const delta = adjMode === 'add' ? qty : -qty;
-  const newBranchStock = Math.max(0, currentBranchStock + delta);
-  sb[branch] = newBranchStock;
-  const newTotalStock = BRANCHES.reduce((s, b) => s + (Number(sb[b]) || 0), 0);
+
+  tbody.innerHTML =
+    list.map(product => {
+
+      const badge =
+        product._stock <= 0
+
+          ?
+
+        `<span class="badge badge-out">
+          Out of Stock
+        </span>`
+
+          :
+
+        `<span class="badge badge-low">
+          Low Stock
+        </span>`;
+
+
+      return `
+        <tr>
+
+          <td>
+
+            <div class="p-name">
+              ${escapeHtml(product.name || '(No name)')}
+            </div>
+
+            <div class="p-meta">
+              ${escapeHtml(product.category || '')}
+              ${
+                product.brand
+                  ? ' · ' + escapeHtml(product.brand)
+                  : ''
+              }
+            </div>
+
+          </td>
+
+          <td>
+            ${product._stock}
+          </td>
+
+          <td>
+            ${product.reorderLevel || '-'}
+          </td>
+
+          <td>
+            ${badge}
+          </td>
+
+        </tr>
+      `;
+
+    }).join('');
+
+}
+
+
+/* =========================================================
+   MOVEMENTS
+========================================================= */
+
+async function loadMovements() {
+
+  const tbody =
+    document.getElementById('moves-tbody');
+
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" class="loading">
+        Loading movement history...
+      </td>
+    </tr>
+  `;
+
 
   try {
-    await updateDoc(doc(tenantCollection(currentUid, "products"), productId), {
-      stockByBranch: sb,
-      stock: newTotalStock,
-    });
-    // Audit log — every manual adjustment is recorded so stock changes can
-    // always be traced back to who/what caused them.
-    await addDoc(tenantCollection(currentUid, "stockAdjustments"), {
-      productId, productName: product.name || '', branch,
-      type: adjMode, qty, reason,
-      stockBefore: currentBranchStock, stockAfter: newBranchStock,
-      createdAt: new Date().toISOString(),
-    });
 
-    product.stockByBranch = sb;
-    product.stock = newTotalStock;
-    allMovements = null; // force reload next time Movements tab is opened
+    if (allMovements === null) {
 
-    window.closeAdjustModal();
-    showToast('✅ Stock adjusted!');
-    if (currentView === 'alerts') renderAlerts();
-    else renderInventory();
-  } catch (e) {
-    err.textContent = 'Save fail hua: ' + e.message;
-    err.style.display = 'block';
+      const snap =
+        await getDocs(
+          tenantCollection(
+            currentUid,
+            "stockAdjustments"
+          )
+        );
+
+
+      allMovements =
+        snap.docs.map(docSnap =>
+          docSnap.data()
+        );
+
+
+      allMovements.sort(
+        (a, b) =>
+          new Date(b.createdAt || 0)
+          -
+          new Date(a.createdAt || 0)
+      );
+
+    }
+
+
+    if (allMovements.length === 0) {
+
+      tbody.innerHTML = `
+        <tr>
+
+          <td
+            colspan="7"
+            class="empty-state">
+
+            Abhi tak koi stock movement record nahi hua.
+
+          </td>
+
+        </tr>
+      `;
+
+      return;
+
+    }
+
+
+    tbody.innerHTML =
+      allMovements.map(movement => {
+
+        const typeLabel =
+          movement.type === 'add'
+
+            ?
+
+          `<span class="badge badge-ok">
+            ➕ Stock In
+          </span>`
+
+            :
+
+          `<span class="badge badge-out">
+            ➖ Stock Out
+          </span>`;
+
+
+        const dateStr =
+          movement.createdAt
+            ? new Date(
+                movement.createdAt
+              ).toLocaleString('en-IN')
+            : '-';
+
+
+        return `
+          <tr>
+
+            <td>
+              ${escapeHtml(dateStr)}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                movement.productName || '-'
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                (movement.branch || '')
+                  .replace('FRALEN ', '')
+              )}
+            </td>
+
+            <td>
+              ${typeLabel}
+            </td>
+
+            <td>
+              ${movement.qty || 0}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                movement.reason || '-'
+              )}
+            </td>
+
+            <td>
+              ${movement.stockAfter ?? '-'}
+            </td>
+
+          </tr>
+        `;
+
+      }).join('');
+
+
+  } catch (error) {
+
+    tbody.innerHTML = `
+      <tr>
+
+        <td
+          colspan="7"
+          class="loading">
+
+          Error:
+          ${escapeHtml(error.message)}
+
+        </td>
+
+      </tr>
+    `;
+
   }
+
+}
+
+
+/* =========================================================
+   OPEN MODAL
+========================================================= */
+
+window.openAdjustModal = function() {
+
+  document.getElementById(
+    'adj-qty'
+  ).value = '';
+
+
+  document.getElementById(
+    'adj-err'
+  ).style.display = 'none';
+
+
+  /*
+    Make sure the 5 options are always present.
+  */
+
+  populateAdjustProductDropdown();
+
+
+  window.setAdjMode('add');
+
+
+  document.getElementById(
+    'adj-modal'
+  ).classList.add('open');
+
 };
 
-function showToast(msg) {
-  const toast = document.getElementById('toast');
-  toast.textContent = msg;
-  toast.style.display = 'block';
-  setTimeout(() => { toast.style.display = 'none'; }, 2000);
+
+/* =========================================================
+   CLOSE MODAL
+========================================================= */
+
+window.closeAdjustModal = function() {
+
+  document.getElementById(
+    'adj-modal'
+  ).classList.remove('open');
+
+};
+
+
+/* =========================================================
+   ADJUSTMENT MODE
+========================================================= */
+
+window.setAdjMode = function(mode) {
+
+  adjMode = mode;
+
+
+  document.getElementById(
+    'mode-add'
+  ).classList.toggle(
+    'active-add',
+    mode === 'add'
+  );
+
+
+  document.getElementById(
+    'mode-remove'
+  ).classList.toggle(
+    'active-remove',
+    mode === 'remove'
+  );
+
+};
+
+
+/* =========================================================
+   SAVE ADJUSTMENT
+========================================================= */
+
+window.saveAdjustment = async function() {
+
+  const productName =
+    document.getElementById(
+      'adj-product'
+    ).value;
+
+
+  const branch =
+    document.getElementById(
+      'adj-branch'
+    ).value;
+
+
+  const qty =
+    parseInt(
+      document.getElementById(
+        'adj-qty'
+      ).value,
+      10
+    );
+
+
+  const reason =
+    document.getElementById(
+      'adj-reason'
+    ).value;
+
+
+  const err =
+    document.getElementById(
+      'adj-err'
+    );
+
+
+  /* ---------------------------------------------
+     VALIDATION
+  --------------------------------------------- */
+
+  if (!productName) {
+
+    err.textContent =
+      'Product select karo.';
+
+    err.style.display = 'block';
+
+    return;
+
+  }
+
+
+  if (!qty || qty <= 0) {
+
+    err.textContent =
+      'Sahi quantity enter karo.';
+
+    err.style.display = 'block';
+
+    return;
+
+  }
+
+
+  if (!branch) {
+
+    err.textContent =
+      'Branch select karo.';
+
+    err.style.display = 'block';
+
+    return;
+
+  }
+
+
+  /* ---------------------------------------------
+     FIND PRODUCT
+
+     We support two possibilities:
+
+     1. Product name matches:
+        FRAMES / LENSES etc.
+
+     2. Product category matches:
+        FRAMES / LENSES etc.
+  --------------------------------------------- */
+
+  let product =
+    allProducts.find(p =>
+      String(p.name || '')
+        .trim()
+        .toUpperCase()
+        === productName
+    );
+
+
+  if (!product) {
+
+    product =
+      allProducts.find(p =>
+        String(p.category || '')
+          .trim()
+          .toUpperCase()
+          === productName
+      );
+
+  }
+
+
+  /*
+    If no Firebase product exists,
+    show an error instead of crashing.
+  */
+
+  if (!product) {
+
+    err.textContent =
+      `${productName} ka product Firebase mein nahi mila.`;
+
+    err.style.display = 'block';
+
+    return;
+
+  }
+
+
+  /* ---------------------------------------------
+     STOCK
+  --------------------------------------------- */
+
+  const stockByBranch =
+    {
+      ...(product.stockByBranch || {})
+    };
+
+
+  const currentStock =
+    Number(
+      stockByBranch[branch]
+    ) || 0;
+
+
+  const delta =
+    adjMode === 'add'
+      ? qty
+      : -qty;
+
+
+  /*
+    Don't allow negative stock.
+  */
+
+  if (
+    adjMode === 'remove' &&
+    qty > currentStock
+  ) {
+
+    err.textContent =
+      `Stock sirf ${currentStock} units hai. Itna stock remove nahi kar sakte.`;
+
+    err.style.display = 'block';
+
+    return;
+
+  }
+
+
+  const newStock =
+    currentStock + delta;
+
+
+  stockByBranch[branch] =
+    newStock;
+
+
+  const newTotalStock =
+    BRANCHES.reduce(
+      (sum, branchName) =>
+        sum +
+        (
+          Number(
+            stockByBranch[branchName]
+          ) || 0
+        ),
+      0
+    );
+
+
+  /* ---------------------------------------------
+     SAVE TO FIREBASE
+  --------------------------------------------- */
+
+  try {
+
+    await updateDoc(
+
+      doc(
+        tenantCollection(
+          currentUid,
+          "products"
+        ),
+        product.id
+      ),
+
+      {
+        stockByBranch:
+          stockByBranch,
+
+        stock:
+          newTotalStock
+      }
+
+    );
+
+
+    /* -------------------------------------------
+       STOCK MOVEMENT LOG
+    ------------------------------------------- */
+
+    await addDoc(
+
+      tenantCollection(
+        currentUid,
+        "stockAdjustments"
+      ),
+
+      {
+
+        productId:
+          product.id,
+
+        productName:
+          productName,
+
+        branch:
+          branch,
+
+        type:
+          adjMode,
+
+        qty:
+          qty,
+
+        reason:
+          reason,
+
+        stockBefore:
+          currentStock,
+
+        stockAfter:
+          newStock,
+
+        createdAt:
+          new Date().toISOString()
+
+      }
+
+    );
+
+
+    /* -------------------------------------------
+       UPDATE LOCAL DATA
+    ------------------------------------------- */
+
+    product.stockByBranch =
+      stockByBranch;
+
+
+    product.stock =
+      newTotalStock;
+
+
+    allMovements = null;
+
+
+    /* -------------------------------------------
+       CLOSE + REFRESH
+    ------------------------------------------- */
+
+    window.closeAdjustModal();
+
+
+    showToast(
+      `✅ ${productName} stock updated!`
+    );
+
+
+    if (currentView === 'alerts') {
+
+      renderAlerts();
+
+    } else {
+
+      renderInventory();
+
+    }
+
+
+  } catch (error) {
+
+    err.textContent =
+      'Save fail hua: ' +
+      error.message;
+
+    err.style.display =
+      'block';
+
+  }
+
+};
+
+
+/* =========================================================
+   TOAST
+========================================================= */
+
+function showToast(message) {
+
+  const toast =
+    document.getElementById(
+      'toast'
+    );
+
+
+  toast.textContent =
+    message;
+
+
+  toast.style.display =
+    'block';
+
+
+  setTimeout(() => {
+
+    toast.style.display =
+      'none';
+
+  }, 2500);
+
 }
+
+
+/* =========================================================
+   ESCAPE HTML
+========================================================= */
+
+function escapeHtml(value) {
+
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+}
+
 </script>
 
 </body>
