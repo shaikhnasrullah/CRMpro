@@ -100,6 +100,43 @@ input::placeholder { color: #9CA3AF; }
 .success-msg { background: #ECFDF5; color: #059669; border: 1px solid #A7F3D0; }
 .auth-panel { display: none; }
 .auth-panel.active { display: block; }
+
+/* ACTIVATION / PAYMENT MODAL */
+#activation-overlay {
+  position: fixed; inset: 0; background: rgba(17,28,78,0.55); z-index: 200;
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+#activation-overlay.show { display: flex; }
+.activation-card {
+  background: white; border-radius: 22px; width: 100%; max-width: 400px;
+  padding: 30px 26px 26px; box-shadow: 0 12px 48px rgba(27,42,107,0.25);
+  text-align: center; max-height: 92vh; overflow-y: auto;
+}
+.activation-title { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 19px; color: var(--navy); margin-bottom: 4px; }
+.activation-sub { font-size: 13px; color: var(--gray); margin-bottom: 18px; line-height: 1.5; }
+.activation-qr-wrap { background: var(--bg); border-radius: 16px; padding: 14px; margin-bottom: 16px; }
+.activation-qr-wrap img { width: 100%; max-width: 220px; border-radius: 10px; display: block; margin: 0 auto; }
+.activation-support {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: #F3F4F6; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px;
+  font-size: 14px; font-weight: 600; color: var(--navy);
+}
+.activation-support a { color: var(--navy); text-decoration: none; }
+.activation-warning {
+  background: #FEF2F2; border: 1px solid #FECACA; color: #B91C1C;
+  border-radius: 10px; padding: 10px 14px; font-size: 12.5px; line-height: 1.5; margin-bottom: 18px; text-align: left;
+}
+.btn-whatsapp {
+  width: 100%; padding: 13px; background: #25D366; color: white; border: none; border-radius: 10px;
+  font-size: 14.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  text-decoration: none; margin-bottom: 10px;
+}
+.btn-whatsapp:hover { background: #1EBE5A; }
+.btn-activation-continue {
+  width: 100%; padding: 12px; background: transparent; color: var(--gray); border: 1.5px solid var(--input-border);
+  border-radius: 10px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+}
+.btn-activation-continue:hover { background: #F9FAFB; }
 </style>
 </head>
 <body>
@@ -179,6 +216,32 @@ input::placeholder { color: #9CA3AF; }
   </div>
 </div>
 
+<!-- POST-SIGNUP ACTIVATION / PAYMENT MODAL -->
+<div id="activation-overlay">
+  <div class="activation-card">
+    <div class="activation-title">Activate Your FRALEN Account</div>
+    <div class="activation-sub">Your shop account has been created. Complete the one-time activation payment below to start using FRALEN CRM.</div>
+
+    <div class="activation-qr-wrap">
+      <img src="payment-qr.jpg" alt="Scan to pay for activation"/>
+    </div>
+
+    <div class="activation-support">
+      Support: <a href="tel:9304477821">9304477821</a>
+    </div>
+
+    <div class="activation-warning">
+      ⚠️ Your account may be <strong>deactivated</strong> if the activation payment is not completed. After paying, send your payment screenshot on WhatsApp for verification.
+    </div>
+
+    <a class="btn-whatsapp" id="whatsapp-screenshot-btn" href="https://wa.me/919304477821?text=Hi%2C%20I%20have%20completed%20the%20FRALEN%20CRM%20activation%20payment.%20Sending%20my%20screenshot." target="_blank" rel="noopener">
+      Send Screenshot on WhatsApp
+    </a>
+
+    <button class="btn-activation-continue" id="activation-continue-btn" type="button">Continue</button>
+  </div>
+</div>
+
 <script>
   // Splash hide
   setTimeout(() => { document.getElementById('splash').classList.add('hide'); }, 2000);
@@ -205,9 +268,30 @@ input::placeholder { color: #9CA3AF; }
     ok.style.display = 'block';
     document.getElementById('error-msg').style.display = 'none';
   };
+
+  // Call this from auth.js right after a new signup succeeds
+  // (before redirecting the user into the dashboard).
+  window.showPaymentActivation = function () {
+    document.getElementById('activation-overlay').classList.add('show');
+  };
+
+  window.hidePaymentActivation = function () {
+    document.getElementById('activation-overlay').classList.remove('show');
+  };
+
+  document.getElementById('activation-continue-btn').addEventListener('click', function () {
+    window.hidePaymentActivation();
+    // If you want signup to be blocked until payment is confirmed,
+    // remove this listener/button and only let an admin-side
+    // verification step (e.g. a Firestore "activated" flag) unlock the dashboard.
+    if (typeof window.onActivationContinue === 'function') {
+      window.onActivationContinue();
+    }
+  });
 </script>
 
 <!-- Auth logic lives in auth.js (imports the shared firebase-config.js) -->
 <script type="module" src="auth.js"></script>
 </body>
 </html>
+
