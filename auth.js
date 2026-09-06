@@ -13,8 +13,11 @@ import {
 } from "./firebase-config.js";
 
 // If someone is already logged in and lands on index.html, skip straight to the dashboard.
+// (signupForm sets this to true right after creating the account, so this
+// listener doesn't race the activation modal and jump to dashboard.html early.)
+let holdForActivation = false;
 onAuthStateChanged(auth, (user) => {
-  if (user) window.location.href = "dashboard.html";
+  if (user && !holdForActivation) window.location.href = "dashboard.html";
 });
 
 // ---------- LOGIN ----------
@@ -52,12 +55,23 @@ signupForm.addEventListener("submit", async () => {
   btn.classList.add("loading");
 
   try {
+    holdForActivation = true;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     // Create the users/{uid} profile document right away, so every
     // subsequent page has a shop profile to read (owner name, shop name, etc).
     await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
-    window.location.href = "dashboard.html";
+
+    // Account created — show the activation/payment screen instead of
+    // going straight to the dashboard. "Continue" on that modal is what
+    // actually sends the user into the app.
+    btn.textContent = "Create Account";
+    btn.classList.remove("loading");
+    window.onActivationContinue = function () {
+      window.location.href = "dashboard.html";
+    };
+    window.showPaymentActivation();
   } catch (err) {
+    holdForActivation = false;
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Create Account";
     btn.classList.remove("loading");
