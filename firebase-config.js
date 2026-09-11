@@ -1,4 +1,4 @@
-// firebase-config.js
+ // firebase-config.js
 // Single shared Firebase setup for the whole FRALEN CRM.
 // Every page imports ONLY from this file — never re-initializes Firebase itself.
 // This is what makes the app multi-tenant: every read/write goes through
@@ -33,6 +33,16 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+// Super-admin: same UID must ALSO be pasted into firestore.rules
+// (the isAdmin() function there) — that's what actually enforces
+// read-only cross-shop access. This constant is only used here to
+// decide where a signed-in admin gets redirected after login.
+const ADMIN_UID = "Yh77mpl85MZli95Sd5wmGtPRHrt2";
+
+function isAdminUser(user) {
+  return !!user && user.uid === ADMIN_UID;
+}
 
 /**
  * Every logged-in shop's data lives under users/{uid}/<collectionName>.
@@ -86,6 +96,26 @@ async function createUserProfile(uid, { ownerName, shopName, email, phone }) {
   });
 }
 
+/**
+ * Guard for admin.html only. It:
+ *  - redirects to index.html if nobody is logged in
+ *  - redirects a logged-in NON-admin back to dashboard.html
+ *  - otherwise calls onReady(user) for the admin account
+ */
+function requireAdmin(onReady) {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.href = "index.html";
+      return;
+    }
+    if (!isAdminUser(user)) {
+      window.location.href = "dashboard.html";
+      return;
+    }
+    onReady(user);
+  });
+}
+
 export {
   app,
   auth,
@@ -99,5 +129,7 @@ export {
   tenantDoc,
   profileDoc,
   requireAuth,
+  requireAdmin,
+  isAdminUser,
   createUserProfile,
 };
