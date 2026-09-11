@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FRALEN CRM — Super Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -41,6 +42,30 @@
   .shop-card h4 { color: var(--navy); font-size: 15px; font-weight: 800; margin-bottom: 4px; }
   .shop-meta { font-size: 12px; color: var(--gray); display: flex; gap: 10px; flex-wrap: wrap; }
   .shop-meta span { background: #F3F4F6; padding: 2px 9px; border-radius: 20px; }
+  .shop-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .status-badge { font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+  .status-badge.active { background: #D1FAE5; color: #047857; }
+  .status-badge.suspended { background: #FEE2E2; color: #B91C1C; }
+  .shop-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .shop-actions button { border: none; border-radius: 7px; padding: 6px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; }
+  .btn-suspend { background: #FEE2E2; color: #B91C1C; }
+  .btn-activate { background: #D1FAE5; color: #047857; }
+  .btn-view { background: var(--accent-soft); color: var(--navy); }
+  .audit-row { padding: 9px 0; border-bottom: 1px solid #F3F4F6; font-size: 12.5px; }
+  .audit-row:last-child { border-bottom: none; }
+  .audit-row .a-action { font-weight: 700; color: var(--navy); }
+  .audit-row .a-meta { color: var(--gray); font-size: 11px; margin-top: 2px; }
+
+  /* SHOP TABLE */
+  .table-wrap { background: white; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; overflow-x: auto; }
+  table.shop-table { width: 100%; border-collapse: collapse; min-width: 780px; }
+  table.shop-table th { background: var(--navy); color: white; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 12px; text-align: left; }
+  table.shop-table td { padding: 10px 12px; border-bottom: 1px solid #F3F4F6; font-size: 13px; vertical-align: middle; }
+  table.shop-table tr:last-child td { border-bottom: none; }
+  .dl-btn { border: none; border-radius: 7px; padding: 6px 11px; font-size: 11.5px; font-weight: 700; cursor: pointer; margin-right: 5px; white-space: nowrap; }
+  .dl-cust { background: #EEF1FE; color: var(--accent); }
+  .dl-sales { background: #D1FAE5; color: #047857; }
+  .dl-all { background: var(--navy); color: white; }
 
   .empty-state, .loading { text-align: center; padding: 40px 20px; color: var(--gray); font-size: 13.5px; }
 
@@ -64,12 +89,17 @@
 <div id="panel">
   <div class="topbar">
     <div class="topbar-logo">FRALEN CRM <span class="admin-tag">SUPER ADMIN</span></div>
-    <button class="logout-btn" onclick="window.adminLogout()">Logout</button>
+    <div style="display:flex;gap:8px">
+      <button class="logout-btn" onclick="window.showAuditLog()">📝 Audit Log</button>
+      <button class="logout-btn" onclick="window.adminLogout()">Logout</button>
+    </div>
   </div>
 
   <div class="container">
     <div class="stats-row">
       <div class="stat-card"><div class="lbl">Total Shops</div><div class="val" id="stat-shops">0</div></div>
+      <div class="stat-card"><div class="lbl">Active</div><div class="val" id="stat-active">0</div></div>
+      <div class="stat-card"><div class="lbl">Suspended</div><div class="val" id="stat-suspended" style="color:#EF4444">0</div></div>
       <div class="stat-card"><div class="lbl">Total Orders (All Shops)</div><div class="val" id="stat-orders">0</div></div>
       <div class="stat-card"><div class="lbl">Total Revenue (All Shops)</div><div class="val" id="stat-revenue">Rs. 0</div></div>
     </div>
@@ -78,7 +108,25 @@
       <input type="text" id="search" placeholder="Search shop name, owner, phone, email..." oninput="window.renderShops()"/>
     </div>
 
-    <div id="shop-list"><div class="loading">Loading shops...</div></div>
+    <div class="table-wrap">
+      <table class="shop-table">
+        <thead>
+          <tr><th>#</th><th>Shop Name</th><th>Email</th><th>Status</th><th>Yearly Revenue</th><th>Orders</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="shop-list"><tr><td colspan="7" class="loading">Loading shops...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- AUDIT LOG DRAWER -->
+<div class="detail-overlay" id="audit-overlay">
+  <div class="detail-box">
+    <div class="detail-head">
+      <h2>📝 Audit Log</h2>
+      <button class="close-btn" onclick="window.closeAuditLog()">Close</button>
+    </div>
+    <div id="audit-body"><div class="loading">Loading...</div></div>
   </div>
 </div>
 
@@ -94,15 +142,18 @@
 </div>
 
 <script type="module">
-import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db, requireAdmin, signOut, auth } from "./firebase-config.js";
+
+let currentAdminUid = null;
 
 let allShops = [];
 
 // requireAdmin() sends anyone who isn't logged in back to index.html, and
 // anyone logged in who ISN'T the whitelisted admin UID back to dashboard.html.
 // Only the real admin account ever sees the panel below.
-requireAdmin(() => {
+requireAdmin((user) => {
+  currentAdminUid = user.uid;
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('panel').style.display = 'block';
   loadAllShops();
@@ -134,17 +185,23 @@ async function loadAllShops() {
     }
 
     document.getElementById('stat-shops').textContent = allShops.length;
+    updateGlobalStats();
     window.renderShops();
 
     // Load order counts/revenue per shop in the background (doesn't block the list).
+    const oneYearAgo = new Date(); oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
     for (const shop of allShops) {
       try {
         const orderSnap = await getDocs(collection(db, "users", shop.uid, "orders"));
         shop.orderCount = orderSnap.size;
         shop.revenue = orderSnap.docs.reduce((s, d) => s + (d.data().totals?.payable || 0), 0);
+        shop.yearlyRevenue = orderSnap.docs
+          .filter(d => d.data().createdAt && new Date(d.data().createdAt) >= oneYearAgo)
+          .reduce((s, d) => s + (d.data().totals?.payable || 0), 0);
       } catch (e) {
         shop.orderCount = 0;
         shop.revenue = 0;
+        shop.yearlyRevenue = 0;
       }
       window.renderShops();
       updateGlobalStats();
@@ -157,8 +214,11 @@ async function loadAllShops() {
 function updateGlobalStats() {
   const totalOrders = allShops.reduce((s, sh) => s + (sh.orderCount || 0), 0);
   const totalRevenue = allShops.reduce((s, sh) => s + (sh.revenue || 0), 0);
+  const suspendedCount = allShops.filter(s => s.status === 'suspended').length;
   document.getElementById('stat-orders').textContent = totalOrders;
   document.getElementById('stat-revenue').textContent = 'Rs. ' + totalRevenue.toFixed(2);
+  document.getElementById('stat-active').textContent = allShops.length - suspendedCount;
+  document.getElementById('stat-suspended').textContent = suspendedCount;
 }
 
 window.renderShops = function () {
@@ -174,20 +234,103 @@ window.renderShops = function () {
     );
   }
   if (list.length === 0) {
-    listEl.innerHTML = `<div class="empty-state">Koi shop nahi mila.</div>`;
+    listEl.innerHTML = `<tr><td colspan="7" class="empty-state">Koi shop nahi mila.</td></tr>`;
     return;
   }
-  listEl.innerHTML = list.map(s => `
-    <div class="shop-card" onclick="window.openShopDetail('${s.uid}')">
-      <h4>${s.shopName || '(No shop name)'}</h4>
-      <div class="shop-meta">
-        <span>👤 ${s.ownerName || '-'}</span>
-        <span>📞 ${s.phone || '-'}</span>
-        <span>✉️ ${s.email || '-'}</span>
-        <span>🧾 ${s.orderCount === null ? '...' : s.orderCount} orders</span>
-        <span>💰 Rs. ${s.revenue === null ? '...' : s.revenue.toFixed(2)}</span>
-      </div>
-    </div>`).join('');
+  listEl.innerHTML = list.map((s, i) => {
+    const isSuspended = s.status === 'suspended';
+    return `
+    <tr>
+      <td>${i + 1}</td>
+      <td style="cursor:pointer;font-weight:700;color:var(--navy)" onclick="window.openShopDetail('${s.uid}')">${s.shopName || '(No shop name)'}</td>
+      <td>${s.email || '-'}</td>
+      <td><span class="status-badge ${isSuspended ? 'suspended' : 'active'}">${isSuspended ? '⏸️ Suspended' : '✅ Active'}</span></td>
+      <td>Rs. ${s.yearlyRevenue === null || s.yearlyRevenue === undefined ? '...' : s.yearlyRevenue.toFixed(2)}</td>
+      <td>${s.orderCount === null ? '...' : s.orderCount}</td>
+      <td style="white-space:nowrap">
+        <button class="dl-btn dl-cust" onclick="window.downloadShopData('${s.uid}', '${(s.shopName||'shop').replace(/'/g,"")}', 'customers')">📥 Customers</button>
+        <button class="dl-btn dl-sales" onclick="window.downloadShopData('${s.uid}', '${(s.shopName||'shop').replace(/'/g,"")}', 'sales')">📥 Sales</button>
+        <button class="dl-btn dl-all" onclick="window.downloadShopData('${s.uid}', '${(s.shopName||'shop').replace(/'/g,"")}', 'all')">📥 All</button>
+        <br/>
+        <button class="dl-btn" style="background:var(--accent-soft);color:var(--navy);margin-top:5px" onclick="window.openShopDetail('${s.uid}')">👁️ View</button>
+        ${isSuspended
+          ? `<button class="dl-btn" style="background:#D1FAE5;color:#047857" onclick="window.setShopStatus('${s.uid}', 'active')">🔓 Activate</button>`
+          : `<button class="dl-btn" style="background:#FEE2E2;color:#B91C1C" onclick="window.setShopStatus('${s.uid}', 'suspended')">⏸️ Suspend</button>`}
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+/* ---------------- DOWNLOAD SHOP DATA (Excel) ---------------- */
+window.downloadShopData = async function (uid, shopName, type) {
+  try {
+    const orderSnap = await getDocs(collection(db, "users", uid, "orders"));
+    const orders = orderSnap.docs.map(d => d.data());
+
+    const salesRows = orders.map(o => ({
+      'Order No.': o.orderNo || '', 'Date': o.createdAt ? new Date(o.createdAt).toLocaleString('en-IN') : '',
+      'Customer Name': o.customerName || '', 'Mobile': o.mobile || '', 'Branch': o.branch || '',
+      'Payable Amount': o.totals?.payable || 0, 'Advance Paid': o.totals?.advance || 0,
+      'Pending Balance': o.totals?.pending || 0, 'Status': o.status || '',
+    }));
+
+    const custMap = {};
+    orders.forEach(o => {
+      const key = (o.mobile || 'unknown').trim() || 'unknown';
+      if (!custMap[key]) custMap[key] = { name: o.customerName || '', mobile: key === 'unknown' ? '' : key, orders: 0, totalSpent: 0 };
+      custMap[key].orders += 1;
+      custMap[key].totalSpent += (o.totals?.payable || 0);
+    });
+    const custRows = Object.values(custMap).map(c => ({
+      'Customer Name': c.name, 'Mobile': c.mobile, 'Total Orders': c.orders, 'Total Spent (Rs)': c.totalSpent.toFixed(2),
+    }));
+
+    const safeShopName = shopName.replace(/[^\w]+/g, '_').slice(0, 30);
+    const wb = XLSX.utils.book_new();
+
+    if (type === 'customers') {
+      if (custRows.length === 0) { alert('Is shop ka koi customer data nahi mila.'); return; }
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custRows), 'Customers');
+      XLSX.writeFile(wb, `${safeShopName}_Customers.xlsx`);
+    } else if (type === 'sales') {
+      if (salesRows.length === 0) { alert('Is shop ka koi sales data nahi mila.'); return; }
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesRows), 'Sales');
+      XLSX.writeFile(wb, `${safeShopName}_Sales.xlsx`);
+    } else {
+      if (salesRows.length === 0 && custRows.length === 0) { alert('Is shop ka koi data nahi mila.'); return; }
+      if (salesRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(salesRows), 'Sales');
+      if (custRows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(custRows), 'Customers');
+      XLSX.writeFile(wb, `${safeShopName}_AllData.xlsx`);
+    }
+  } catch (err) {
+    alert('Download fail hua: ' + err.message);
+  }
+};
+
+window.setShopStatus = async function (uid, newStatus) {
+  const shop = allShops.find(s => s.uid === uid);
+  if (!shop) return;
+  const actionLabel = newStatus === 'suspended' ? 'suspend' : 'activate';
+  if (!confirm(`"${shop.shopName || uid}" ko ${actionLabel === 'suspend' ? 'suspend' : 'activate'} karna hai?`)) return;
+
+  try {
+    await updateDoc(doc(db, "users", uid), { status: newStatus });
+    shop.status = newStatus;
+    updateGlobalStats();
+    window.renderShops();
+
+    // Every suspend/activate gets recorded here — only the admin account can read/write this collection.
+    await addDoc(collection(db, "adminAuditLogs"), {
+      action: newStatus === 'suspended' ? 'Suspended shop' : 'Activated shop',
+      targetUid: uid,
+      targetShopName: shop.shopName || '(no name)',
+      adminUid: currentAdminUid,
+      device: navigator.userAgent,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    alert('Action fail hua: ' + e.message);
+  }
 };
 
 window.openShopDetail = async function (uid) {
@@ -230,6 +373,34 @@ window.openShopDetail = async function (uid) {
 
 window.closeDetail = function () {
   document.getElementById('detail-overlay').classList.remove('open');
+};
+
+window.showAuditLog = async function () {
+  const body = document.getElementById('audit-body');
+  body.innerHTML = '<div class="loading">Loading audit log...</div>';
+  document.getElementById('audit-overlay').classList.add('open');
+  try {
+    const snap = await getDocs(query(collection(db, "adminAuditLogs"), orderBy("createdAt", "desc"), limit(100)));
+    if (snap.empty) {
+      body.innerHTML = '<div class="empty-state">Abhi tak koi admin action record nahi hua.</div>';
+      return;
+    }
+    body.innerHTML = snap.docs.map(d => {
+      const l = d.data();
+      const dateStr = l.createdAt ? new Date(l.createdAt).toLocaleString('en-IN') : '-';
+      return `
+        <div class="audit-row">
+          <div class="a-action">${l.action} — ${l.targetShopName || l.targetUid}</div>
+          <div class="a-meta">${dateStr} · Admin UID: ${(l.adminUid || '').slice(0, 8)}...</div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    body.innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
+  }
+};
+
+window.closeAuditLog = function () {
+  document.getElementById('audit-overlay').classList.remove('open');
 };
 </script>
 
