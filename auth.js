@@ -10,14 +10,13 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   createUserProfile,
+  isAdminUser,
 } from "./firebase-config.js";
 
-// If someone is already logged in and lands on index.html, skip straight to the dashboard.
-// (signupForm sets this to true right after creating the account, so this
-// listener doesn't race the activation modal and jump to dashboard.html early.)
-let holdForActivation = false;
+// If someone is already logged in and lands on index.html, skip straight to
+// the dashboard — or to the admin panel, if this is the admin account.
 onAuthStateChanged(auth, (user) => {
-  if (user && !holdForActivation) window.location.href = "dashboard.html";
+  if (user) window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
 });
 
 // ---------- LOGIN ----------
@@ -31,8 +30,8 @@ loginForm.addEventListener("submit", async () => {
   btn.classList.add("loading");
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
-    window.location.href = "dashboard.html";
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    window.location.href = isAdminUser(cred.user) ? "admin.html" : "dashboard.html";
   } catch (err) {
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Sign In";
@@ -55,23 +54,12 @@ signupForm.addEventListener("submit", async () => {
   btn.classList.add("loading");
 
   try {
-    holdForActivation = true;
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     // Create the users/{uid} profile document right away, so every
     // subsequent page has a shop profile to read (owner name, shop name, etc).
     await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
-
-    // Account created — show the activation/payment screen instead of
-    // going straight to the dashboard. "Continue" on that modal is what
-    // actually sends the user into the app.
-    btn.textContent = "Create Account";
-    btn.classList.remove("loading");
-    window.onActivationContinue = function () {
-      window.location.href = "dashboard.html";
-    };
-    window.showPaymentActivation();
+    window.location.href = "dashboard.html";
   } catch (err) {
-    holdForActivation = false;
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Create Account";
     btn.classList.remove("loading");
