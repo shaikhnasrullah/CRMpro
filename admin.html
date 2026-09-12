@@ -142,7 +142,7 @@
 </div>
 
 <script type="module">
-import { collection, getDocs, doc, updateDoc, addDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { collection, collectionGroup, getDocs, doc, setDoc, updateDoc, addDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { db, requireAdmin, signOut, auth } from "./firebase-config.js";
 
 let currentAdminUid = null;
@@ -166,21 +166,38 @@ window.adminLogout = function () {
 async function loadAllShops() {
   const listEl = document.getElementById('shop-list');
   try {
+    // Shops that DO have a profile doc (users/{uid}) — normal signups.
     // This ONLY returns every shop's profile doc if the signed-in UID is
     // the admin UID whitelisted in firestore.rules — for anyone else,
     // Firestore silently filters this down to just their own doc.
-    const snap = await getDocs(collection(db, "users"));
-    allShops = [];
-    for (const docSnap of snap.docs) {
-      const profile = docSnap.data();
-      allShops.push({ uid: docSnap.id, ...profile, orderCount: null, revenue: null });
-    }
+    const profileSnap = await getDocs(collection(db, "users"));
+    const shopMap = {};
+    profileSnap.forEach(docSnap => {
+      shopMap[docSnap.id] = { uid: docSnap.id, ...docSnap.data(), orderCount: null, revenue: null, hasProfile: true };
+    });
+
+    // Legacy shops: some accounts have real orders but their users/{uid}
+    // profile doc was never created (old signup flow, or data written
+    // straight into a subcollection). Firestore doesn't return a "phantom"
+    // parent doc from a plain collection listing, so those shops were
+    // invisible above. A COLLECTION GROUP query on "orders" finds every
+    // orders subcollection across every parent, no matter what — this is
+    // what actually surfaces them.
+    const ordersGroupSnap = await getDocs(collectionGroup(db, "orders"));
+    ordersGroupSnap.forEach(orderDoc => {
+      const parentUid = orderDoc.ref.parent.parent?.id;
+      if (parentUid && !shopMap[parentUid]) {
+        shopMap[parentUid] = { uid: parentUid, shopName: '(No profile — legacy shop)', ownerName: '-', phone: '-', email: '-', orderCount: null, revenue: null, hasProfile: false };
+      }
+    });
+
+    allShops = Object.values(shopMap);
 
     if (allShops.length === 0) {
-      listEl.innerHTML = `<div class="empty-state">
-        Koi shop nahi mila — ya toh abhi tak koi signup nahi hua, ya yeh account admin ke roop mein whitelist nahi hai.<br/>
+      listEl.innerHTML = `<tr><td colspan="7" class="empty-state">
+        Koi shop nahi mila — ya toh abhi tak koi signup/order nahi hua, ya yeh account admin ke roop mein whitelist nahi hai.<br/>
         <span style="font-size:12px">Check karo: firestore.rules mein isAdmin() function mein sahi UID paste hui hai?</span>
-      </div>`;
+      </td></tr>`;
       return;
     }
 
@@ -242,7 +259,7 @@ window.renderShops = function () {
     return `
     <tr>
       <td>${i + 1}</td>
-      <td style="cursor:pointer;font-weight:700;color:var(--navy)" onclick="window.openShopDetail('${s.uid}')">${s.shopName || '(No shop name)'}</td>
+      <td style="cursor:pointer;font-weight:700;color:var(--navy)" onclick="window.openShopDetail('${s.uid}')">${s.shopName || '(No shop name)'}${s.hasProfile === false ? ' <span style="font-size:10px;font-weight:700;background:#FEF3C7;color:#B45309;padding:2px 7px;border-radius:20px">⚠️ No Profile</span>' : ''}</td>
       <td>${s.email || '-'}</td>
       <td><span class="status-badge ${isSuspended ? 'suspended' : 'active'}">${isSuspended ? '⏸️ Suspended' : '✅ Active'}</span></td>
       <td>Rs. ${s.yearlyRevenue === null || s.yearlyRevenue === undefined ? '...' : s.yearlyRevenue.toFixed(2)}</td>
@@ -314,7 +331,7 @@ window.setShopStatus = async function (uid, newStatus) {
   if (!confirm(`"${shop.shopName || uid}" ko ${actionLabel === 'suspend' ? 'suspend' : 'activate'} karna hai?`)) return;
 
   try {
-    await updateDoc(doc(db, "users", uid), { status: newStatus });
+    await setDoc(doc(db, "users", uid), { status: newStatus }, { merge: true });
     shop.status = newStatus;
     updateGlobalStats();
     window.renderShops();
