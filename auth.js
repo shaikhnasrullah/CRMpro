@@ -11,7 +11,17 @@ import {
   sendPasswordResetEmail,
   createUserProfile,
   isAdminUser,
+  profileDoc,
+  signOut,
 } from "./firebase-config.js";
+import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// Show a message if we just bounced a suspended shop back here.
+if (new URLSearchParams(window.location.search).get('suspended') === '1') {
+  window.addEventListener('DOMContentLoaded', () => {
+    window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+  });
+}
 
 // If someone is already logged in and lands on index.html, skip straight to
 // the dashboard — or to the admin panel, if this is the admin account.
@@ -31,6 +41,16 @@ loginForm.addEventListener("submit", async () => {
 
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
+    if (!isAdminUser(cred.user)) {
+      const snap = await getDoc(profileDoc(cred.user.uid));
+      if (snap.exists() && snap.data().status === "suspended") {
+        await signOut(auth);
+        window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+        btn.textContent = "Sign In";
+        btn.classList.remove("loading");
+        return;
+      }
+    }
     window.location.href = isAdminUser(cred.user) ? "admin.html" : "dashboard.html";
   } catch (err) {
     window.showLoginError(friendlyAuthError(err));
@@ -57,7 +77,14 @@ signupForm.addEventListener("submit", async () => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     // Create the users/{uid} profile document right away, so every
     // subsequent page has a shop profile to read (owner name, shop name, etc).
-    await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
+    // If this specific write fails for any reason, don't strand the person
+    // on an error screen with an orphaned auth account — requireAuth() on
+    // dashboard.html self-heals a missing profile doc automatically.
+    try {
+      await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
+    } catch (profileErr) {
+      console.error("Profile creation failed, will self-heal on next page load:", profileErr);
+    }
     window.location.href = "dashboard.html";
   } catch (err) {
     window.showLoginError(friendlyAuthError(err));
@@ -93,3 +120,4 @@ function friendlyAuthError(err) {
     default: return (err && err.message) ? err.message : "Kuch galat ho gaya. Dobara try karo.";
   }
 }
+
