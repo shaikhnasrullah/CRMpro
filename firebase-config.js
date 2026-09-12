@@ -1,4 +1,4 @@
- // firebase-config.js
+// firebase-config.js
 // Single shared Firebase setup for the whole FRALEN CRM.
 // Every page imports ONLY from this file — never re-initializes Firebase itself.
 // This is what makes the app multi-tenant: every read/write goes through
@@ -18,6 +18,7 @@ import {
   collection,
   doc,
   setDoc,
+  getDoc,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -73,27 +74,64 @@ function profileDoc(uid) {
  * Guard for every "inside app" page (dashboard, customers, create-order, etc).
  * Call this at the top of the page's script. It:
  *  - redirects to index.html if nobody is logged in
+ *  - signs out + redirects a SUSPENDED shop back to index.html with a message
+ *  - self-heals a missing profile doc (e.g. if signup's write failed) so
+ *    every shop always has SOMETHING in users/{uid} — this is also what
+ *    makes every shop visible to the admin panel, even brand-new ones with
+ *    zero orders yet (the admin panel can't find those via orders alone).
  *  - otherwise calls onReady(user) with the Firebase user object
  */
 function requireAuth(onReady) {
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (!user) {
       window.location.href = "index.html";
       return;
+    }
+    // Admin account never gets suspended and doesn't have a "shop" — skip the check.
+    if (!isAdminUser(user)) {
+      try {
+        const snap = await getDoc(profileDoc(user.uid));
+        if (snap.exists()) {
+          if (snap.data().status === "suspended") {
+            await signOut(auth);
+            window.location.href = "index.html?suspended=1";
+            return;
+          }
+        } else {
+          // No profile doc at all — signup's write must have failed or
+          // never ran. Create a minimal one now so this shop isn't invisible.
+          await setDoc(profileDoc(user.uid), {
+            email: user.email || "",
+            shopName: "",
+            ownerName: "",
+            phone: "",
+            createdAt: serverTimestamp(),
+          }, { merge: true });
+        }
+      } catch (e) { /* if the check itself fails, fail open rather than lock everyone out */ }
     }
     onReady(user);
   });
 }
 
-/** Create the users/{uid} profile document right after signup. */
+/** Create the users/{uid} profile document right after signup. Retries once
+ * on failure (transient network blips are common right after signup) so the
+ * real entered data survives instead of falling back to a blank self-healed
+ * profile later. */
 async function createUserProfile(uid, { ownerName, shopName, email, phone }) {
-  await setDoc(profileDoc(uid), {
+  const data = {
     ownerName: ownerName || "",
     shopName: shopName || "",
     email: email || "",
     phone: phone || "",
     createdAt: serverTimestamp(),
-  });
+  };
+  try {
+    await setDoc(profileDoc(uid), data, { merge: true });
+  } catch (e) {
+    await new Promise((r) => setTimeout(r, 1200));
+    await setDoc(profileDoc(uid), data, { merge: true }); // let this one throw if it fails again
+  }
 }
 
 /**
