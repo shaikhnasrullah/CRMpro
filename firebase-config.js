@@ -11,6 +11,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   signOut,
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
@@ -87,8 +88,13 @@ function requireAuth(onReady) {
       window.location.href = "index.html";
       return;
     }
-    // Admin account never gets suspended and doesn't have a "shop" — skip the check.
+    // Admin account is manually created/trusted — skip verification & suspension checks.
     if (!isAdminUser(user)) {
+      // Email must be verified before any shop page is usable.
+      if (!user.emailVerified) {
+        window.location.href = "verify-email.html";
+        return;
+      }
       try {
         const snap = await getDoc(profileDoc(user.uid));
         if (snap.exists()) {
@@ -162,6 +168,7 @@ export {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   signOut,
   tenantCollection,
   tenantDoc,
