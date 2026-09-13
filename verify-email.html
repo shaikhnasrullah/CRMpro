@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Verify Your Email</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif; background: #F0F2FA; min-height: 100vh;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.card {
+  background: white; border-radius: 24px; padding: 40px 32px; width: 100%; max-width: 420px;
+  box-shadow: 0 8px 40px rgba(27,42,107,0.10); text-align: center;
+}
+.icon { font-size: 52px; margin-bottom: 14px; }
+h1 { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 800; color: #1B2A6B; margin-bottom: 10px; }
+p { font-size: 13.5px; color: #6B7280; line-height: 1.6; margin-bottom: 6px; }
+.email-shown { font-weight: 700; color: #1B2A6B; word-break: break-all; }
+.btn { width: 100%; padding: 13px; border-radius: 10px; font-size: 14.5px; font-weight: 700; cursor: pointer; border: none; margin-top: 10px; }
+.btn-primary { background: #1B2A6B; color: white; }
+.btn-primary:hover { background: #2A3F8F; }
+.btn-secondary { background: #EEF1FE; color: #4F6BF0; }
+.btn-secondary:hover { background: #DCE4FF; }
+.btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-logout { background: none; color: #9CA3AF; font-weight: 500; font-size: 12.5px; margin-top: 16px; text-decoration: underline; cursor: pointer; border: none; }
+.msg { font-size: 12.5px; margin-top: 12px; display: none; }
+.msg.ok { color: #059669; display: block; }
+.msg.error { color: #DC2626; display: block; }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="icon">📧</div>
+  <h1>VERIFY YOUR EMAIL</h1>
+  <p>We've sent a verification link to:</p>
+  <p class="email-shown" id="user-email">...</p>
+  <p style="margin-top:14px">Please check your inbox (or Spam folder), click the verification link, and then click "I've Verified" below.</p>
+
+  <button class="btn btn-primary" onclick="window.checkVerified()">✅ I've Verified — Continue</button>
+  <button class="btn btn-secondary" id="resend-btn" onclick="window.resendEmail()">📩 Resend Email</button>
+  <button class="btn-logout" onclick="window.doLogout()">Logout</button>
+
+  <div class="msg" id="msg"></div>
+</div>
+
+<script type="module">
+import { auth, onAuthStateChanged, sendEmailVerification, signOut, isAdminUser } from "./firebase-config.js";
+
+let currentUser = null;
+let resendCooldown = false;
+
+onAuthStateChanged(auth, (user) => {
+  if (!user) {
+    window.location.href = "index.html";
+    return;
+  }
+  if (isAdminUser(user) || user.emailVerified) {
+    window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
+    return;
+  }
+  currentUser = user;
+  document.getElementById('user-email').textContent = user.email || '';
+});
+
+window.checkVerified = async function () {
+  const msg = document.getElementById('msg');
+  if (!currentUser) return;
+  try {
+    // Firebase's cached user object only updates after reload() —
+    // this is what actually re-checks the verification status from the server.
+    await currentUser.reload();
+    if (currentUser.emailVerified) {
+      window.location.href = "dashboard.html";
+    } else {
+      msg.textContent = "Your email has not been verified yet. Please check your email, click the verification link, and try again.";
+      msg.className = "msg error";
+    }
+  } catch (err) {
+    msg.textContent = "Error: " + err.message;
+    msg.className = "msg error";
+  }
+};
+
+window.resendEmail = async function () {
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('resend-btn');
+  if (!currentUser || resendCooldown) return;
+  try {
+    await sendEmailVerification(currentUser);
+    msg.textContent = "✅ A new verification email has been sent!";
+    msg.className = "msg ok";
+    resendCooldown = true;
+    btn.disabled = true;
+    let seconds = 30;
+    btn.textContent = `📩 Resend Email (${seconds}s)`;
+    const timer = setInterval(() => {
+      seconds--;
+      btn.textContent = `📩 Resend Email (${seconds}s)`;
+      if (seconds <= 0) {
+        clearInterval(timer);
+        btn.disabled = false;
+        btn.textContent = "📩 Resend Email";
+        resendCooldown = false;
+      }
+    }, 1000);
+  } catch (err) {
+    msg.textContent = "Error: " + err.message;
+    msg.className = "msg error";
+  }
+};
+
+window.doLogout = function () {
+  signOut(auth).then(() => { window.location.href = "index.html"; });
+};
+</script>
+
+</body>
+</html>
