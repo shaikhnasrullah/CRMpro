@@ -23,10 +23,21 @@ if (new URLSearchParams(window.location.search).get('suspended') === '1') {
   });
 }
 
-// If someone is already logged in and lands on index.html, skip straight to
-// the dashboard — or to the admin panel, if this is the admin account.
+// IMPORTANT: this is set to true while our OWN signup/login handlers are
+// running, so the auto-redirect listener below doesn't race them. Without
+// this guard, createUserWithEmailAndPassword() signs the user in
+// internally, which fires onAuthStateChanged and could redirect to
+// dashboard.html BEFORE the signup handler's own createUserProfile() call
+// runs — leaving a real account with a blank shop profile.
+let authActionInProgress = false;
+
+// If someone is already logged in and lands on index.html (e.g. they
+// bookmarked this page while still signed in), skip straight to the
+// dashboard — or to the admin panel, if this is the admin account.
 onAuthStateChanged(auth, (user) => {
-  if (user) window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
+  if (user && !authActionInProgress) {
+    window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
+  }
 });
 
 // ---------- LOGIN ----------
@@ -38,6 +49,7 @@ loginForm.addEventListener("submit", async () => {
 
   btn.textContent = "Signing in...";
   btn.classList.add("loading");
+  authActionInProgress = true;
 
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
@@ -48,6 +60,7 @@ loginForm.addEventListener("submit", async () => {
         window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
         btn.textContent = "Sign In";
         btn.classList.remove("loading");
+        authActionInProgress = false;
         return;
       }
     }
@@ -56,6 +69,7 @@ loginForm.addEventListener("submit", async () => {
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Sign In";
     btn.classList.remove("loading");
+    authActionInProgress = false;
   }
 });
 
@@ -72,14 +86,14 @@ signupForm.addEventListener("submit", async () => {
 
   btn.textContent = "Creating account...";
   btn.classList.add("loading");
+  authActionInProgress = true;
 
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     // Create the users/{uid} profile document right away, so every
     // subsequent page has a shop profile to read (owner name, shop name, etc).
-    // If this specific write fails for any reason, don't strand the person
-    // on an error screen with an orphaned auth account — requireAuth() on
-    // dashboard.html self-heals a missing profile doc automatically.
+    // The authActionInProgress guard above stops the auto-redirect listener
+    // from firing early and cutting this off before it finishes.
     try {
       await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
     } catch (profileErr) {
@@ -90,6 +104,7 @@ signupForm.addEventListener("submit", async () => {
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Create Account";
     btn.classList.remove("loading");
+    authActionInProgress = false;
   }
 });
 
@@ -120,4 +135,3 @@ function friendlyAuthError(err) {
     default: return (err && err.message) ? err.message : "Kuch galat ho gaya. Dobara try karo.";
   }
 }
-
