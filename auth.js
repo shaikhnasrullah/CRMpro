@@ -9,6 +9,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  sendEmailVerification,
   createUserProfile,
   isAdminUser,
   profileDoc,
@@ -36,7 +37,11 @@ let authActionInProgress = false;
 // dashboard — or to the admin panel, if this is the admin account.
 onAuthStateChanged(auth, (user) => {
   if (user && !authActionInProgress) {
-    window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
+    if (!isAdminUser(user) && !user.emailVerified) {
+      window.location.href = "verify-email.html";
+    } else {
+      window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
+    }
   }
 });
 
@@ -54,6 +59,10 @@ loginForm.addEventListener("submit", async () => {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     if (!isAdminUser(cred.user)) {
+      if (!cred.user.emailVerified) {
+        window.location.href = "verify-email.html";
+        return;
+      }
       const snap = await getDoc(profileDoc(cred.user.uid));
       if (snap.exists() && snap.data().status === "suspended") {
         await signOut(auth);
@@ -99,7 +108,12 @@ signupForm.addEventListener("submit", async () => {
     } catch (profileErr) {
       console.error("Profile creation failed, will self-heal on next page load:", profileErr);
     }
-    window.location.href = "dashboard.html";
+    try {
+      await sendEmailVerification(cred.user);
+    } catch (verifyErr) {
+      console.error("Verification email failed to send:", verifyErr);
+    }
+    window.location.href = "verify-email.html";
   } catch (err) {
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Create Account";
