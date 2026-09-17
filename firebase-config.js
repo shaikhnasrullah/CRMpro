@@ -1,8 +1,7 @@
 // firebase-config.js
-// shared Firebase setup for the whole FRALEN CRM.
+// Single shared Firebase setup for the whole FRALEN CRM.
 // Every page imports ONLY from this file — never re-initializes Firebase itself.
 // This is what makes the app multi-tenant: every read/write goes through
-// tenantCollection()/tenantDoc(), which forces the path under users/{uid}/...
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
