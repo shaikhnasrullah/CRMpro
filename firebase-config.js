@@ -1,4 +1,7 @@
-// // Every page imports ONLY from this file — never re-initializes Firebase itself.
+// // Every page imports ONLY from this
+// firebase-config.js
+// Single shared Firebase setup for the whole FRALEN CRM.
+// Every page imports ONLY from this file — never re-initializes Firebase itself.
 // This is what makes the app multi-tenant: every read/write goes through
 // tenantCollection()/tenantDoc(), which forces the path under users/{uid}/...
 
@@ -169,4 +172,3 @@ export {
   isAdminUser,
   createUserProfile,
 };
-
