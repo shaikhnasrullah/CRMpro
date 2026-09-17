@@ -88,7 +88,7 @@ const signupForm = document.getElementById("signupForm");
 signupForm.addEventListener("submit", async () => {
   const shopName = document.getElementById("su-shop").value.trim();
   const ownerName = document.getElementById("su-owner").value.trim();
-  const phone = document.getElementById("su-phone").value.trim();
+  const ").value.trim();
   const email = document.getElementById("su-email").value.trim();
   const password = document.getElementById("su-password").value;
   const btn = document.getElementById("signup-btn");
