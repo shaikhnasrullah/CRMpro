@@ -31,7 +31,8 @@ onAuthStateChanged(auth, (user) => {
 
 // ---------- LOGIN ----------
 const loginForm = document.getElementById("loginForm");
-loginForm.addEventListener("submit", async () => {
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
   const email = document.getElementById("login-email").value.trim();
   const password = document.getElementById("login-password").value;
   const btn = document.getElementById("signin-btn");
@@ -62,7 +63,8 @@ loginForm.addEventListener("submit", async () => {
 // ---------- SIGN UP ----------
 // Every signup = a brand new, fully isolated shop account (users/{uid}).
 const signupForm = document.getElementById("signupForm");
-signupForm.addEventListener("submit", async () => {
+signupForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
   const shopName = document.getElementById("su-shop").value.trim();
   const ownerName = document.getElementById("su-owner").value.trim();
   const phone = document.getElementById("su-phone").value.trim();
