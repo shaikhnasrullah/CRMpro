@@ -29,7 +29,7 @@ if (new URLSearchParams(window.location.search).get('suspended') === '1') {
 // this guard, createUserWithEmailAndPassword() signs the user in
 // internally, which fires onAuthStateChanged and could redirect to
 // dashboard.html BEFORE the signup handler's own createUserProfile() call
-// runs — leaving a real account with a blank shop profile.
+// runs — leaving a real account with a blank shop 
 let authActionInProgress = false;
 
 // If someone is already logged in and lands on index.html (e.g. they
@@ -88,7 +88,7 @@ const signupForm = document.getElementById("signupForm");
 signupForm.addEventListener("submit", async () => {
   const shopName = document.getElementById("su-shop").value.trim();
   const ownerName = document.getElementById("su-owner").value.trim();
-  const ").value.trim();
+  const phone = document.getElementById("su-phone").value.trim();
   const email = document.getElementById("su-email").value.trim();
   const password = document.getElementById("su-password").value;
   const btn = document.getElementById("signup-btn");
