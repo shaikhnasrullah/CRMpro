@@ -1,284 +1,161 @@
+im
+
+// auth.js
+// This replaces the old app.js. It only runs on index.html (the login/signup page).
+// It never touches Firestore data collections directly — all of that
+// happens through firebase-config.js on the other pages.
+
 import {
   auth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-  signOut,
-  isAdminUser,
   createUserProfile,
+  isAdminUser,
+  profileDoc,
+  signOut,
 } from "./firebase-config.js";
+import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ============================================================
-// AUTH STATE
-// ============================================================
-
-let authActionInProgress = false;
-let waitingForActivation = false;
-
-
-// ============================================================
-// LOGIN FORM
-// ============================================================
-
-const loginForm = document.getElementById("login-form");
-
-if (loginForm) {
-  loginForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    if (authActionInProgress) return;
-
-    const emailInput = document.getElementById("login-email");
-    const passwordInput = document.getElementById("login-password");
-
-    const email = emailInput?.value.trim();
-    const password = passwordInput?.value;
-
-    if (!email || !password) {
-      alert("Please enter email and password.");
-      return;
-    }
-
-    authActionInProgress = true;
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-
-      window.location.href = "dashboard.html";
-
-    } catch (err) {
-      console.error("Login error:", err);
-
-      let message = "Login failed. Please try again.";
-
-      if (err.code === "auth/invalid-credential") {
-        message = "Invalid email or password.";
-      } else if (err.code === "auth/user-not-found") {
-        message = "No account found with this email.";
-      } else if (err.code === "auth/wrong-password") {
-        message = "Incorrect password.";
-      } else if (err.code === "auth/invalid-email") {
-        message = "Please enter a valid email address.";
-      }
-
-      alert(message);
-      authActionInProgress = false;
-    }
+// Show a message (with payment QR) if we just bounced a suspended shop back here.
+if (new URLSearchParams(window.location.search).get('suspended') === '1') {
+  window.addEventListener('DOMContentLoaded', () => {
+    window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+    showSuspendedQr();
   });
 }
 
+// IMPORTANT: this is set to true while our OWN signup/login handlers are
+// running, so the auto-redirect listener below doesn't race them. Without
+// this guard, createUserWithEmailAndPassword() signs the user in
+// internally, which fires onAuthStateChanged and could redirect to
+// dashboard.html BEFORE the signup handler's own createUserProfile() call
+// runs — leaving a real account with a blank shop profile.
+let authActionInProgress = false;
 
-// ============================================================
-// SIGNUP FORM
-// ============================================================
+// If someone is already logged in and lands on index.html (e.g. they
+// bookmarked this page while still signed in), skip straight to the
+// dashboard — or to the admin panel, if this is the admin account.
+onAuthStateChanged(auth, (user) => {
+  if (user && !authActionInProgress) {
+    window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
+  }
+});
 
-const signupForm = document.getElementById("signup-form");
+// ---------- LOGIN ----------
+const loginForm = document.getElementById("loginForm");
+loginForm.addEventListener("submit", async () => {
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const btn = document.getElementById("signin-btn");
 
-if (signupForm) {
-  signupForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+  btn.textContent = "Signing in...";
+  btn.classList.add("loading");
+  authActionInProgress = true;
 
-    if (authActionInProgress) return;
-
-    const ownerNameInput = document.getElementById("signup-owner-name");
-    const shopNameInput = document.getElementById("signup-shop-name");
-    const emailInput = document.getElementById("signup-email");
-    const phoneInput = document.getElementById("signup-phone");
-    const passwordInput = document.getElementById("signup-password");
-
-    const ownerName = ownerNameInput?.value.trim();
-    const shopName = shopNameInput?.value.trim();
-    const email = emailInput?.value.trim();
-    const phone = phoneInput?.value.trim();
-    const password = passwordInput?.value;
-
-    if (!ownerName || !shopName || !email || !phone || !password) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
-    if (password.length < 6) {
-      alert("Password must be at least 6 characters.");
-      return;
-    }
-
-    authActionInProgress = true;
-    waitingForActivation = true;
-
-    try {
-      // --------------------------------------------------------
-      // CREATE FIREBASE ACCOUNT
-      // --------------------------------------------------------
-
-      const cred = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-      // --------------------------------------------------------
-      // CREATE USER PROFILE
-      // --------------------------------------------------------
-
-      try {
-        await createUserProfile(cred.user.uid, {
-          ownerName,
-          shopName,
-          email,
-          phone,
-        });
-      } catch (profileErr) {
-        console.error(
-          "Profile creation failed, will self-heal on next page load:",
-          profileErr
-        );
-      }
-
-      // --------------------------------------------------------
-      // SHOW PAYMENT ACTIVATION POPUP
-      // --------------------------------------------------------
-
-      if (typeof window.showPaymentActivation === "function") {
-        window.showPaymentActivation();
-      } else {
-        console.error(
-          "showPaymentActivation() function not found."
-        );
-
-        // Safety fallback
-        waitingForActivation = false;
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    if (!isAdminUser(cred.user)) {
+      const snap = await getDoc(profileDoc(cred.user.uid));
+      if (snap.exists() && snap.data().status === "suspended") {
+        await signOut(auth);
+        window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+        showSuspendedQr();
+        btn.textContent = "Sign In";
+        btn.classList.remove("loading");
         authActionInProgress = false;
-        window.location.href = "dashboard.html";
         return;
       }
-
-      // --------------------------------------------------------
-      // CONTINUE BUTTON
-      // --------------------------------------------------------
-
-      window.onActivationContinue = function () {
-        waitingForActivation = false;
-        authActionInProgress = false;
-
-        window.location.href = "dashboard.html";
-      };
-
-    } catch (err) {
-      console.error("Signup error:", err);
-
-      waitingForActivation = false;
-      authActionInProgress = false;
-
-      let message = "Signup failed. Please try again.";
-
-      if (err.code === "auth/email-already-in-use") {
-        message = "This email is already registered.";
-      } else if (err.code === "auth/invalid-email") {
-        message = "Please enter a valid email address.";
-      } else if (err.code === "auth/weak-password") {
-        message = "Password must be at least 6 characters.";
-      }
-
-      alert(message);
     }
-  });
-}
-
-
-// ============================================================
-// FORGOT PASSWORD
-// ============================================================
-
-const forgotPasswordForm =
-  document.getElementById("forgot-password-form");
-
-if (forgotPasswordForm) {
-  forgotPasswordForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const emailInput =
-      document.getElementById("forgot-email") ||
-      document.getElementById("reset-email");
-
-    const email = emailInput?.value.trim();
-
-    if (!email) {
-      alert("Please enter your email address.");
-      return;
-    }
-
-    try {
-      await sendPasswordResetEmail(auth, email);
-
-      alert(
-        "Password reset email sent. Please check your inbox."
-      );
-
-    } catch (err) {
-      console.error("Password reset error:", err);
-
-      let message =
-        "Unable to send password reset email.";
-
-      if (err.code === "auth/user-not-found") {
-        message = "No account found with this email.";
-      } else if (err.code === "auth/invalid-email") {
-        message = "Please enter a valid email address.";
-      }
-
-      alert(message);
-    }
-  });
-}
-
-
-// ============================================================
-// LOGOUT
-// ============================================================
-
-const logoutButtons =
-  document.querySelectorAll("[data-logout], #logout-btn");
-
-logoutButtons.forEach((button) => {
-  button.addEventListener("click", async () => {
-    try {
-      await signOut(auth);
-      window.location.href = "index.html";
-    } catch (err) {
-      console.error("Logout error:", err);
-      alert("Unable to logout. Please try again.");
-    }
-  });
+    window.location.href = isAdminUser(cred.user) ? "admin.html" : "dashboard.html";
+  } catch (err) {
+    window.showLoginError(friendlyAuthError(err));
+    btn.textContent = "Sign In";
+    btn.classList.remove("loading");
+    authActionInProgress = false;
+  }
 });
 
+// ---------- SIGN UP ----------
+// Every signup = a brand new, fully isolated shop account (users/{uid}).
+const signupForm = document.getElementById("signupForm");
+signupForm.addEventListener("submit", async () => {
+  const shopName = document.getElementById("su-shop").value.trim();
+  const ownerName = document.getElementById("su-owner").value.trim();
+  const phone = document.getElementById("su-phone").value.trim();
+  const email = document.getElementById("su-email").value.trim();
+  const password = document.getElementById("su-password").value;
+  const btn = document.getElementById("signup-btn");
 
-// ============================================================
-// AUTH STATE CHANGE
-// ============================================================
+  btn.textContent = "Creating account...";
+  btn.classList.add("loading");
+  authActionInProgress = true;
 
-onAuthStateChanged(auth, (user) => {
-
-  // No logged-in user
-  if (!user) {
-    return;
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    // Create the users/{uid} profile document right away, so every
+    // subsequent page has a shop profile to read (owner name, shop name, etc).
+    // The authActionInProgress guard above stops the auto-redirect listener
+    // from firing early and cutting this off before it finishes.
+    try {
+      await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
+    } catch (profileErr) {
+      console.error("Profile creation failed, will self-heal on next page load:", profileErr);
+    }
+    window.location.href = "dashboard.html";
+  } catch (err) {
+    window.showLoginError(friendlyAuthError(err));
+    btn.textContent = "Create Account";
+    btn.classList.remove("loading");
+    authActionInProgress = false;
   }
-
-  // Do not redirect while signup/payment activation is in progress
-  if (authActionInProgress || waitingForActivation) {
-    return;
-  }
-
-  // Admin
-  if (isAdminUser(user)) {
-    window.location.href = "admin.html";
-    return;
-  }
-
-  // Normal shop user
-  window.location.href = "dashboard.html";
 });
 
-Is code mein main change sirf signup flow ka hai: account create hone ke baad "payment-qr.jpg" wala existing activation popup open hoga, aur Continue dabane ke baad dashboard open hoga.
+// ---------- FORGOT PASSWORD ----------
+window.handleForgotPassword = async function () {
+  const email = document.getElementById("login-email").value.trim();
+  if (!email) {
+    window.showLoginError("Pehle apna email address likho, phir 'Forgot password?' dabao.");
+    return;
+  }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    window.showLoginSuccess("Password reset link bhej diya gaya hai " + email + " par.");
+  } catch (err) {
+    window.showLoginError(friendlyAuthError(err));
+  }
+};
 
-Ek cheez check karna: aapke "index.html" mein QR filename "payment-qr.jpg" hi hona chahiye.
+// ---------- SUSPENDED ACCOUNT PAYMENT QR ----------
+// Shows payment-qr.jpg next to the suspended-account message so the shop
+// owner can scan and pay to get reactivated. Injects the <img> once,
+// right after the login form (or wherever #loginForm lives on the page).
+function showSuspendedQr() {
+  if (document.getElementById("suspended-qr")) return; // already shown
+
+  const img = document.createElement("img");
+  img.id = "suspended-qr";
+  img.src = "payment-qr.jpg";
+  img.alt = "Payment QR code";
+  img.style.display = "block";
+  img.style.margin = "16px auto 0";
+  img.style.maxWidth = "220px";
+
+  const anchor = document.getElementById("loginForm") || document.body;
+  anchor.parentNode.insertBefore(img, anchor.nextSibling);
+}
+
+function friendlyAuthError(err) {
+  const code = err && err.code ? err.code : "";
+  switch (code) {
+    case "auth/invalid-email": return "Email address sahi format mein nahi hai.";
+    case "auth/user-not-found": return "Is email se koi account nahi mila.";
+    case "auth/wrong-password":
+    case "auth/invalid-credential": return "Email ya password galat hai.";
+    case "auth/email-already-in-use": return "Is email se ek account pehle se hai. Login karo.";
+    case "auth/weak-password": return "Password kam se kam 6 characters ka hona chahiye.";
+    default: return (err && err.message) ? err.message : "Kuch galat ho gaya. Dobara try karo.";
+  }
+}
+
