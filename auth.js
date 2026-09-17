@@ -1,6 +1,4 @@
-im
-
-// auth.js
+// auth.jsN
 // This replaces the old app.js. It only runs on index.html (the login/signup page).
 // It never touches Firestore data collections directly — all of that
 // happens through firebase-config.js on the other pages.
@@ -18,29 +16,17 @@ import {
 } from "./firebase-config.js";
 import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Show a message (with payment QR) if we just bounced a suspended shop back here.
+// Show a message if we just bounced a suspended shop back here.
 if (new URLSearchParams(window.location.search).get('suspended') === '1') {
   window.addEventListener('DOMContentLoaded', () => {
     window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
-    showSuspendedQr();
   });
 }
 
-// IMPORTANT: this is set to true while our OWN signup/login handlers are
-// running, so the auto-redirect listener below doesn't race them. Without
-// this guard, createUserWithEmailAndPassword() signs the user in
-// internally, which fires onAuthStateChanged and could redirect to
-// dashboard.html BEFORE the signup handler's own createUserProfile() call
-// runs — leaving a real account with a blank shop profile.
-let authActionInProgress = false;
-
-// If someone is already logged in and lands on index.html (e.g. they
-// bookmarked this page while still signed in), skip straight to the
-// dashboard — or to the admin panel, if this is the admin account.
+// If someone is already logged in and lands on index.html, skip straight to
+// the dashboard — or to the admin panel, if this is the admin account.
 onAuthStateChanged(auth, (user) => {
-  if (user && !authActionInProgress) {
-    window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
-  }
+  if (user) window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
 });
 
 // ---------- LOGIN ----------
@@ -52,7 +38,6 @@ loginForm.addEventListener("submit", async () => {
 
   btn.textContent = "Signing in...";
   btn.classList.add("loading");
-  authActionInProgress = true;
 
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
@@ -61,10 +46,8 @@ loginForm.addEventListener("submit", async () => {
       if (snap.exists() && snap.data().status === "suspended") {
         await signOut(auth);
         window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
-        showSuspendedQr();
         btn.textContent = "Sign In";
         btn.classList.remove("loading");
-        authActionInProgress = false;
         return;
       }
     }
@@ -73,7 +56,6 @@ loginForm.addEventListener("submit", async () => {
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Sign In";
     btn.classList.remove("loading");
-    authActionInProgress = false;
   }
 });
 
@@ -90,14 +72,14 @@ signupForm.addEventListener("submit", async () => {
 
   btn.textContent = "Creating account...";
   btn.classList.add("loading");
-  authActionInProgress = true;
 
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     // Create the users/{uid} profile document right away, so every
     // subsequent page has a shop profile to read (owner name, shop name, etc).
-    // The authActionInProgress guard above stops the auto-redirect listener
-    // from firing early and cutting this off before it finishes.
+    // If this specific write fails for any reason, don't strand the person
+    // on an error screen with an orphaned auth account — requireAuth() on
+    // dashboard.html self-heals a missing profile doc automatically.
     try {
       await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
     } catch (profileErr) {
@@ -108,7 +90,6 @@ signupForm.addEventListener("submit", async () => {
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Create Account";
     btn.classList.remove("loading");
-    authActionInProgress = false;
   }
 });
 
@@ -127,25 +108,6 @@ window.handleForgotPassword = async function () {
   }
 };
 
-// ---------- SUSPENDED ACCOUNT PAYMENT QR ----------
-// Shows payment-qr.jpg next to the suspended-account message so the shop
-// owner can scan and pay to get reactivated. Injects the <img> once,
-// right after the login form (or wherever #loginForm lives on the page).
-function showSuspendedQr() {
-  if (document.getElementById("suspended-qr")) return; // already shown
-
-  const img = document.createElement("img");
-  img.id = "suspended-qr";
-  img.src = "payment-qr.jpg";
-  img.alt = "Payment QR code";
-  img.style.display = "block";
-  img.style.margin = "16px auto 0";
-  img.style.maxWidth = "220px";
-
-  const anchor = document.getElementById("loginForm") || document.body;
-  anchor.parentNode.insertBefore(img, anchor.nextSibling);
-}
-
 function friendlyAuthError(err) {
   const code = err && err.code ? err.code : "";
   switch (code) {
@@ -158,4 +120,3 @@ function friendlyAuthError(err) {
     default: return (err && err.message) ? err.message : "Kuch galat ho gaya. Dobara try karo.";
   }
 }
-
