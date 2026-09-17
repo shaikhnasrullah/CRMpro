@@ -3,6 +3,11 @@
 // It never touches Firestore data collections directly — all of that
 // happens through firebase-config.js on the other pages.
 
+// auth.js
+// This replaces the old app.js. It only runs on index.html (the login/signup page).
+// It never touches Firestore data collections directly — all of that
+// happens through firebase-config.js on the other pages.
+
 import {
   auth,
   onAuthStateChanged,
@@ -20,6 +25,7 @@ import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-fire
 if (new URLSearchParams(window.location.search).get('suspended') === '1') {
   window.addEventListener('DOMContentLoaded', () => {
     window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+    showSuspendedQr();
   });
 }
 
@@ -47,6 +53,7 @@ loginForm.addEventListener("submit", async (e) => {
       if (snap.exists() && snap.data().status === "suspended") {
         await signOut(auth);
         window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+        showSuspendedQr();
         btn.textContent = "Sign In";
         btn.classList.remove("loading");
         return;
@@ -109,6 +116,25 @@ window.handleForgotPassword = async function () {
     window.showLoginError(friendlyAuthError(err));
   }
 };
+
+// ---------- SUSPENDED ACCOUNT PAYMENT QR ----------
+// Shows payment-qr.jpg next to the suspended-account message so the shop
+// owner can scan and pay to get reactivated. Injects the <img> once,
+// right after the login form.
+function showSuspendedQr() {
+  if (document.getElementById("suspended-qr")) return; // already shown
+
+  const img = document.createElement("img");
+  img.id = "suspended-qr";
+  img.src = "payment-qr.jpg";
+  img.alt = "Payment QR code";
+  img.style.display = "block";
+  img.style.margin = "16px auto 0";
+  img.style.maxWidth = "220px";
+
+  const anchor = document.getElementById("loginForm") || document.body;
+  anchor.parentNode.insertBefore(img, anchor.nextSibling);
+}
 
 function friendlyAuthError(err) {
   const code = err && err.code ? err.code : "";
