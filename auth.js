@@ -1,6 +1,8 @@
 // auth.jsN
-// auth.js
-// Login + Signup + Payment Activation + Suspended Account Check
+// auth.js// auth.js
+// This replaces the old app.js. It only runs on index.html (the login/signup page).
+// It never touches Firestore data collections directly — all of that
+// happens through firebase-config.js on the other pages.
 
 import {
   auth,
@@ -9,114 +11,70 @@ import {
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   createUserProfile,
+  isAdminUser,
   profileDoc,
   signOut,
 } from "./firebase-config.js";
+import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-import {
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-
-// Show message if account was redirected after suspension
+// Show a message if we just bounced a suspended shop back here.
 if (new URLSearchParams(window.location.search).get('suspended') === '1') {
   window.addEventListener('DOMContentLoaded', () => {
-    window.showLoginError(
-      "Yeh account suspend kar diya gaya hai. Support se contact karo."
-    );
+    window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
   });
 }
 
+// IMPORTANT: this is set to true while our OWN signup/login handlers are
+// running, so the auto-redirect listener below doesn't race them. Without
+// this guard, createUserWithEmailAndPassword() signs the user in
+// internally, which fires onAuthStateChanged and could redirect to
+// dashboard.html BEFORE the signup handler's own createUserProfile() call
+// runs — leaving a real account with a blank shop profile.
+let authActionInProgress = false;
 
-// If someone is already logged in and lands on index.html,
-// skip straight to dashboard.
-// During signup we temporarily stop this redirect.
-let holdForActivation = false;
-
-onAuthStateChanged(auth, async (user) => {
-
-  if (!user || holdForActivation) return;
-
-  try {
-
-    const snap = await getDoc(profileDoc(user.uid));
-
-    if (
-      snap.exists() &&
-      snap.data().status === "suspended"
-    ) {
-
-      await signOut(auth);
-
-      window.showLoginError(
-        "Yeh account suspend kar diya gaya hai. Support se contact karo."
-      );
-
-      return;
-    }
-
-  } catch (e) {
-    console.error("Suspend check failed:", e);
+// If someone is already logged in and lands on index.html (e.g. they
+// bookmarked this page while still signed in), skip straight to the
+// dashboard — or to the admin panel, if this is the admin account.
+onAuthStateChanged(auth, (user) => {
+  if (user && !authActionInProgress) {
+    window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
   }
-
-  window.location.href = "dashboard.html";
-
 });
 
-
-// ======================================================
-// LOGIN
-// ======================================================
-
+// ---------- LOGIN ----------
 const loginForm = document.getElementById("loginForm");
-
 loginForm.addEventListener("submit", async () => {
-
-  const email =
-    document.getElementById("login-email").value.trim();
-
-  const password =
-    document.getElementById("login-password").value;
-
-  const btn =
-    document.getElementById("signin-btn");
+  const email = document.getElementById("login-email").value.trim();
+  const password = document.getElementById("login-password").value;
+  const btn = document.getElementById("signin-btn");
 
   btn.textContent = "Signing in...";
   btn.classList.add("loading");
+  authActionInProgress = true;
 
   try {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
 
-    const cred =
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
+    if (!isAdminUser(cred.user)) {
+      const snap = await getDoc(profileDoc(cred.user.uid));
 
-    // Suspend check
-    const snap =
-      await getDoc(
-        profileDoc(cred.user.uid)
-      );
+      if (snap.exists() && snap.data().status === "suspended") {
+        await signOut(auth);
 
-    if (
-      snap.exists() &&
-      snap.data().status === "suspended"
-    ) {
+        window.showLoginError(
+          "Yeh account suspend kar diya gaya hai. Support se contact karo."
+        );
 
-      await signOut(auth);
+        btn.textContent = "Sign In";
+        btn.classList.remove("loading");
+        authActionInProgress = false;
 
-      window.showLoginError(
-        "Yeh account suspend kar diya gaya hai. Support se contact karo."
-      );
-
-      btn.textContent = "Sign In";
-      btn.classList.remove("loading");
-
-      return;
+        return;
+      }
     }
 
-    window.location.href = "dashboard.html";
+    window.location.href =
+      isAdminUser(cred.user) ? "admin.html" : "dashboard.html";
 
   } catch (err) {
 
@@ -126,16 +84,12 @@ loginForm.addEventListener("submit", async () => {
 
     btn.textContent = "Sign In";
     btn.classList.remove("loading");
-
+    authActionInProgress = false;
   }
-
 });
 
-
-// ======================================================
-// SIGNUP
-// ======================================================
-
+// ---------- SIGN UP ----------
+// Every signup = a brand new, fully isolated shop account (users/{uid}).
 const signupForm = document.getElementById("signupForm");
 
 signupForm.addEventListener("submit", async () => {
@@ -160,10 +114,9 @@ signupForm.addEventListener("submit", async () => {
 
   btn.textContent = "Creating account...";
   btn.classList.add("loading");
+  authActionInProgress = true;
 
   try {
-
-    holdForActivation = true;
 
     const cred =
       await createUserWithEmailAndPassword(
@@ -172,33 +125,50 @@ signupForm.addEventListener("submit", async () => {
         password
       );
 
-    await createUserProfile(
-      cred.user.uid,
-      {
-        ownerName,
-        shopName,
-        email,
-        phone
-      }
-    );
+    // Create the users/{uid} profile document right away, so every
+    // subsequent page has a shop profile to read (owner name, shop name, etc).
+    // The authActionInProgress guard above stops the auto-redirect listener
+    // from firing early and cutting this off before it finishes.
+    try {
+
+      await createUserProfile(
+        cred.user.uid,
+        {
+          ownerName,
+          shopName,
+          email,
+          phone
+        }
+      );
+
+    } catch (profileErr) {
+
+      console.error(
+        "Profile creation failed, will self-heal on next page load:",
+        profileErr
+      );
+
+    }
 
     btn.textContent = "Create Account";
     btn.classList.remove("loading");
 
-    // Show payment popup
+    // ==================================================
+    // PAYMENT ACTIVATION POPUP
+    // ==================================================
+    // Continue button popup se dashboard par le jayega.
     window.onActivationContinue = function () {
 
-      holdForActivation = false;
+      authActionInProgress = false;
 
-      window.location.href =
-        "dashboard.html";
+      window.location.href = "dashboard.html";
+
     };
 
+    // Payment QR popup show karo.
     window.showPaymentActivation();
 
   } catch (err) {
-
-    holdForActivation = false;
 
     window.showLoginError(
       friendlyAuthError(err)
@@ -206,16 +176,11 @@ signupForm.addEventListener("submit", async () => {
 
     btn.textContent = "Create Account";
     btn.classList.remove("loading");
-
+    authActionInProgress = false;
   }
-
 });
 
-
-// ======================================================
-// FORGOT PASSWORD
-// ======================================================
-
+// ---------- FORGOT PASSWORD ----------
 window.handleForgotPassword = async function () {
 
   const email =
@@ -252,13 +217,7 @@ window.handleForgotPassword = async function () {
     );
 
   }
-
 };
-
-
-// ======================================================
-// FRIENDLY ERRORS
-// ======================================================
 
 function friendlyAuthError(err) {
 
@@ -290,5 +249,8 @@ function friendlyAuthError(err) {
         ? err.message
         : "Kuch galat ho gaya. Dobara try karo.";
   }
-
 }
+
+Important: Yeh "auth.js" tabhi popup dikhayega jab "index.html" mein "window.showPaymentActivation()" function aur "activation-overlay" present ho.
+
+Agar tumhara "index.html" mein woh already hai, to ye code replace karke signup test karo.
