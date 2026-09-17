@@ -29,7 +29,7 @@ if (new URLSearchParams(window.location.search).get('suspended') === '1') {
 // this guard, createUserWithEmailAndPassword() signs the user in
 // internally, which fires onAuthStateChanged and could redirect to
 // dashboard.html BEFORE the signup handler's own createUserProfile() call
-// runs — leaving a real account with a blank shop 
+// runs — leaving a real account with a blank shop profile.
 let authActionInProgress = false;
 
 // If someone is already logged in and lands on index.html (e.g. they
