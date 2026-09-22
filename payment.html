@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Complete Your Payment</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --gray: #6B7280; --border: #C5D3E8;
+    --green: #10B981; --orange: #F59E0B; --red: #EF4444;
+  }
+  body { font-family: 'Inter', sans-serif; background: #F0F2FA; min-height: 100vh; padding: 20px; }
+  .wrap { max-width: 460px; margin: 0 auto; }
+
+  .head { text-align: center; margin-bottom: 20px; }
+  .head .logo { font-family: 'Montserrat', sans-serif; font-size: 20px; font-weight: 900; color: var(--navy); letter-spacing: 3px; }
+  .head .logo span { color: var(--accent); }
+  .head p { font-size: 13px; color: var(--gray); margin-top: 4px; }
+
+  .card { background: white; border-radius: 18px; padding: 24px 22px; box-shadow: 0 8px 40px rgba(27,42,107,0.10); margin-bottom: 16px; }
+
+  .plan-box { background: var(--navy); border-radius: 14px; padding: 18px; text-align: center; color: white; margin-bottom: 18px; }
+  .plan-box .plan-name { font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #C7D2FE; }
+  .plan-box .plan-amount { font-size: 30px; font-weight: 900; margin-top: 4px; }
+  .plan-box .plan-amount span { font-size: 14px; font-weight: 500; color: #C7D2FE; }
+
+  .tabs { display: flex; gap: 6px; background: #F3F4F6; border-radius: 11px; padding: 4px; margin-bottom: 18px; }
+  .tab { flex: 1; text-align: center; padding: 9px; border-radius: 8px; font-size: 12.5px; font-weight: 700; color: var(--gray); cursor: pointer; }
+  .tab.active { background: white; color: var(--navy); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+  .pane { display: none; }
+  .pane.active { display: block; }
+
+  .qr-img { width: 100%; max-width: 220px; display: block; margin: 0 auto 12px; border: 1.5px solid var(--border); border-radius: 12px; }
+  .upi-id { text-align: center; font-size: 13px; color: var(--gray); margin-bottom: 4px; }
+  .upi-id b { color: var(--navy); }
+  .hint { font-size: 12px; color: var(--gray); text-align: center; margin-top: 4px; }
+
+  .rzp-btn {
+    width: 100%; padding: 14px; background: #072654; color: white; border: none; border-radius: 10px;
+    font-size: 14.5px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .rzp-btn:hover { background: #0a3572; }
+  .rzp-note { font-size: 11.5px; color: var(--gray); text-align: center; margin-top: 10px; }
+
+  .field { margin: 18px 0 6px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 14px; outline: none; }
+  .field input:focus { border-color: var(--accent); }
+
+  .btn { width: 100%; padding: 13px; border-radius: 10px; font-size: 14.5px; font-weight: 700; cursor: pointer; border: none; margin-top: 10px; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--navy); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-secondary { background: var(--accent-soft); color: var(--accent); }
+  .btn-secondary:hover { background: #DCE4FF; }
+
+  .msg { font-size: 12.5px; margin-top: 10px; display: none; text-align: center; }
+  .msg.ok { color: var(--green); display: block; }
+  .msg.error { color: var(--red); display: block; }
+  .msg.info { color: var(--navy); display: block; background: var(--accent-soft); padding: 10px; border-radius: 8px; }
+
+  .status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 14px; }
+  .status-pending { background: #FEF3C7; color: #B45309; }
+
+  .helpline { background: white; border-radius: 14px; padding: 18px; text-align: center; box-shadow: 0 4px 20px rgba(27,42,107,0.06); }
+  .helpline .hl-title { font-size: 12.5px; font-weight: 700; color: var(--navy); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .helpline .hl-row { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 13.5px; color: #374151; margin-bottom: 6px; }
+  .helpline a { color: var(--accent); text-decoration: none; font-weight: 600; }
+  .helpline .hl-24x7 { font-size: 11px; color: var(--green); font-weight: 700; background: #D1FAE5; padding: 2px 9px; border-radius: 20px; display: inline-block; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="head">
+    <div class="logo">FRAL<span>EN</span> CRM</div>
+    <p>Apna account activate karne ke liye payment complete karo</p>
+  </div>
+
+  <div class="card">
+    <div id="status-area"></div>
+
+    <div class="plan-box">
+      <div class="plan-name">Monthly Subscription</div>
+      <div class="plan-amount">₹999 <span>/ month</span></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="upi" onclick="window.showTab('upi')">📱 UPI QR</div>
+      <div class="tab" data-tab="razorpay" onclick="window.showTab('razorpay')">💳 Razorpay</div>
+    </div>
+
+    <div class="pane active" data-tab="upi">
+      <img class="qr-img" src="payment-qr.jpg" alt="UPI QR Code"/>
+      <div class="upi-id">UPI ID: <b>fralencrm@upi</b></div>
+      <div class="hint">Kisi bhi UPI app (GPay/PhonePe/Paytm) se scan karke pay karo.</div>
+    </div>
+
+    <div class="pane" data-tab="razorpay">
+      <a id="rzp-link" class="rzp-btn" href="#" target="_blank" rel="noopener">💳 Pay ₹999 via Razorpay</a>
+      <div class="rzp-note">Card, Netbanking, UPI — sab Razorpay ke secure page par.</div>
+    </div>
+
+    <div class="field">
+      <label>Payment ke baad — Transaction / Payment ID daalo</label>
+      <input type="text" id="txn-id" placeholder="e.g. pay_XXXXXXXXXX ya UPI Ref No."/>
+    </div>
+    <button class="btn btn-primary" id="submit-btn" onclick="window.submitPayment()">✅ Submit for Verification</button>
+    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Continue to Dashboard (baad mein verify karwa lunga)</button>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <div class="helpline">
+    <div class="hl-title">Need Help?</div>
+    <div class="hl-row">📞 <a href="tel:9304477821">9304477821</a> <span class="hl-24x7">24×7</span></div>
+    <div class="hl-row">✉️ <a href="mailto:mdnasrullah911@gmail.com">mdnasrullah911@gmail.com</a></div>
+  </div>
+</div>
+
+<script type="module">
+import { requireAuth, tenantDoc, profileDoc } from "./firebase-config.js";
+import { getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ⚠️ Replace this with the real Payment Page/Payment Link URL you create
+// from the Razorpay Dashboard (Payment Pages product) for the ₹999/month
+// plan. No API keys are needed in this file — the link itself is safe to
+// put in client-side code because it doesn't expose your KEY_SECRET.
+const RAZORPAY_PAYMENT_LINK = "https://rzp.io/l/REPLACE_WITH_YOUR_PAYMENT_LINK";
+
+let currentUid = null;
+
+requireAuth((user) => {
+  currentUid = user.uid;
+  document.getElementById('rzp-link').href = RAZORPAY_PAYMENT_LINK;
+  loadStatus();
+});
+
+async function loadStatus() {
+  try {
+    const snap = await getDoc(profileDoc(currentUid));
+    if (snap.exists() && snap.data().paymentStatus === 'pending') {
+      document.getElementById('status-area').innerHTML =
+        `<div class="status-badge status-pending">⏳ Verification Pending</div>`;
+    }
+  } catch (e) { /* non-blocking */ }
+}
+
+window.showTab = function (tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+  document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.dataset.tab === tab));
+};
+
+window.submitPayment = async function () {
+  const txnId = document.getElementById('txn-id').value.trim();
+  const msg = document.getElementById('msg');
+  const btn = document.getElementById('submit-btn');
+
+  if (!txnId) {
+    msg.textContent = 'Transaction/Payment ID daalna zaroori hai.';
+    msg.className = 'msg error';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    // Manual verification model: no backend means we can't cryptographically
+    // verify the payment here. This just logs the claim for the admin to
+    // confirm (Firebase Console or admin.html), same as the UPI QR flow.
+    await setDoc(profileDoc(currentUid), {
+      paymentStatus: 'pending',
+      lastPaymentSubmission: { transactionId: txnId, submittedAt: new Date().toISOString(), amount: 999 },
+    }, { merge: true });
+
+    msg.textContent = '✅ Submit ho gaya! Admin 24 ghante mein verify kar dega. Tab tak dashboard use kar sakte ho.';
+    msg.className = 'msg info';
+    document.getElementById('status-area').innerHTML = `<div class="status-badge status-pending">⏳ Verification Pending</div>`;
+    btn.textContent = '✅ Submitted';
+  } catch (e) {
+    msg.textContent = 'Error: ' + e.message;
+    msg.className = 'msg error';
+    btn.disabled = false;
+    btn.textContent = '✅ Submit for Verification';
+  }
+};
+</script>
+
+</body>
+</html>
