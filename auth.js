@@ -3,6 +3,10 @@
 // This replaces the old app.js. It only runs on index.html (the login/signup page).
 // It never touches Firestore data collections directly — all of that
 // happens through firebase-config.js on the other pages.
+// auth.js
+// This replaces the old app.js. It only runs on index.html (the login/signup page).
+// It never touches Firestore data collections directly — all of that
+// happens through firebase-config.js on the other pages.
 
 import {
   auth,
@@ -100,7 +104,7 @@ signupForm.addEventListener("submit", async () => {
     } catch (profileErr) {
       console.error("Profile creation failed, will self-heal on next page load:", profileErr);
     }
-    window.location.href = "dashboard.html";
+    window.location.href = "payment.html";
   } catch (err) {
     window.showLoginError(friendlyAuthError(err));
     btn.textContent = "Create Account";
