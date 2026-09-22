@@ -78,7 +78,7 @@
 <div class="wrap">
   <div class="head">
     <div class="logo">FRAL<span>EN</span> CRM</div>
-    <p>Apna account activate karne ke liye payment complete karo</p>
+    <p>Complete your payment to activate your account</p>
   </div>
 
   <div class="card">
@@ -97,7 +97,7 @@
     <div class="pane active" data-tab="upi">
       <img class="qr-img" src="payment-qr.jpg" alt="UPI QR Code"/>
       <div class="upi-id">UPI ID: <b>fralencrm@upi</b></div>
-      <div class="hint">Kisi bhi UPI app (GPay/PhonePe/Paytm) se scan karke pay karo.</div>
+      <div class="hint">Scan with any UPI app (GPay/PhonePe/Paytm) to pay.</div>
     </div>
 
     <div class="pane" data-tab="razorpay">
@@ -106,11 +106,11 @@
     </div>
 
     <div class="field">
-      <label>Payment ke baad — Transaction / Payment ID daalo</label>
+      <label>After paying — enter your Transaction / Payment ID</label>
       <input type="text" id="txn-id" placeholder="e.g. pay_XXXXXXXXXX ya UPI Ref No."/>
     </div>
     <button class="btn btn-primary" id="submit-btn" onclick="window.submitPayment()">✅ Submit for Verification</button>
-    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Continue to Dashboard (baad mein verify karwa lunga)</button>
+    <button class="btn btn-secondary" onclick="window.location.href='dashboard.html'">Continue to Dashboard (I'll get verified later)</button>
 
     <div class="msg" id="msg"></div>
   </div>
@@ -130,7 +130,7 @@ import { getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebas
 // from the Razorpay Dashboard (Payment Pages product) for the ₹999/month
 // plan. No API keys are needed in this file — the link itself is safe to
 // put in client-side code because it doesn't expose your KEY_SECRET.
-const RAZORPAY_PAYMENT_LINK = "https://rzp.io/l/REPLACE_WITH_YOUR_PAYMENT_LINK";
+const RAZORPAY_PAYMENT_LINK = "https://rzp.io/rzp/27Dz9355";
 
 let currentUid = null;
 
@@ -161,7 +161,7 @@ window.submitPayment = async function () {
   const btn = document.getElementById('submit-btn');
 
   if (!txnId) {
-    msg.textContent = 'Transaction/Payment ID daalna zaroori hai.';
+    msg.textContent = 'Transaction/Payment ID is required.';
     msg.className = 'msg error';
     return;
   }
@@ -178,7 +178,7 @@ window.submitPayment = async function () {
       lastPaymentSubmission: { transactionId: txnId, submittedAt: new Date().toISOString(), amount: 999 },
     }, { merge: true });
 
-    msg.textContent = '✅ Submit ho gaya! Admin 24 ghante mein verify kar dega. Tab tak dashboard use kar sakte ho.';
+    msg.textContent = '✅ Submitted! Our admin will verify it within 24 hours. You can keep using the dashboard in the meantime.';
     msg.className = 'msg info';
     document.getElementById('status-area').innerHTML = `<div class="status-badge status-pending">⏳ Verification Pending</div>`;
     btn.textContent = '✅ Submitted';
