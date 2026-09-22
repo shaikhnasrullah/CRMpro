@@ -261,7 +261,7 @@ window.renderShops = function () {
       <td>${i + 1}</td>
       <td style="cursor:pointer;font-weight:700;color:var(--navy)" onclick="window.openShopDetail('${s.uid}')">${s.shopName || '(No shop name)'}${s.hasProfile === false ? ' <span style="font-size:10px;font-weight:700;background:#FEF3C7;color:#B45309;padding:2px 7px;border-radius:20px">⚠️ No Profile</span>' : ''}</td>
       <td>${s.email || '-'}</td>
-      <td><span class="status-badge ${isSuspended ? 'suspended' : 'active'}">${isSuspended ? '⏸️ Suspended' : '✅ Active'}</span></td>
+      <td><span class="status-badge ${isSuspended ? 'suspended' : 'active'}">${isSuspended ? '⏸️ Suspended' : '✅ Active'}</span>${s.paymentStatus === 'pending' ? '<br/><span style="font-size:10px;font-weight:700;background:#FEF3C7;color:#B45309;padding:2px 7px;border-radius:20px;margin-top:4px;display:inline-block">⏳ Payment Pending</span>' : ''}</td>
       <td>Rs. ${s.yearlyRevenue === null || s.yearlyRevenue === undefined ? '...' : s.yearlyRevenue.toFixed(2)}</td>
       <td>${s.orderCount === null ? '...' : s.orderCount}</td>
       <td style="white-space:nowrap">
@@ -273,6 +273,7 @@ window.renderShops = function () {
         ${isSuspended
           ? `<button class="dl-btn" style="background:#D1FAE5;color:#047857" onclick="window.setShopStatus('${s.uid}', 'active')">🔓 Activate</button>`
           : `<button class="dl-btn" style="background:#FEE2E2;color:#B91C1C" onclick="window.setShopStatus('${s.uid}', 'suspended')">⏸️ Suspend</button>`}
+        ${s.paymentStatus === 'pending' ? `<button class="dl-btn" style="background:#D1FAE5;color:#047857" onclick="window.verifyPayment('${s.uid}')">✅ Verify Payment</button>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -324,6 +325,23 @@ window.downloadShopData = async function (uid, shopName, type) {
   }
 };
 
+window.verifyPayment = async function (uid) {
+  const shop = allShops.find(s => s.uid === uid);
+  if (!shop) return;
+  if (!confirm(`"${shop.shopName || uid}" ka payment verify karke "paid" mark karna hai? (Bank/UPI/Razorpay dashboard mein amount confirm kar liya?)`)) return;
+  try {
+    await setDoc(doc(db, "users", uid), { paymentStatus: 'verified', paymentVerifiedAt: new Date().toISOString() }, { merge: true });
+    shop.paymentStatus = 'verified';
+    window.renderShops();
+    await addDoc(collection(db, "adminAuditLogs"), {
+      action: 'Verified payment', targetUid: uid, targetShopName: shop.shopName || '(no name)',
+      adminUid: currentAdminUid, device: navigator.userAgent, createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    alert('Action fail hua: ' + e.message);
+  }
+};
+
 window.setShopStatus = async function (uid, newStatus) {
   const shop = allShops.find(s => s.uid === uid);
   if (!shop) return;
@@ -361,22 +379,38 @@ window.openShopDetail = async function (uid) {
     const orders = orderSnap.docs.map(d => d.data()).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
     let html = `
-      <div class="section-lbl">Shop Info</div>
-      <table><tbody>
-        <tr><td>Owner</td><td>${shop?.ownerName || '-'}</td></tr>
-        <tr><td>Phone</td><td>${shop?.phone || '-'}</td></tr>
-        <tr><td>Email</td><td>${shop?.email || '-'}</td></tr>
-        <tr><td>Address</td><td>${shop?.address || '-'}</td></tr>
-      </tbody></table>
+      <div class="section-lbl">Shop Info ${shop?.hasProfile === false ? '<span style="color:#B45309;font-weight:700">(Profile missing — fill in below)</span>' : ''}</div>
+      <div style="background:#F9FAFB;border-radius:10px;padding:14px;margin-bottom:14px">
+        <div class="field" style="margin-bottom:10px"><label style="display:block;font-size:11.5px;font-weight:700;color:#374151;margin-bottom:4px">Shop Name</label>
+          <input type="text" id="edit-shopname" value="${(shop?.shopName || '').replace(/"/g, '&quot;')}" placeholder="Shop name" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px"/>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+          <div class="field"><label style="display:block;font-size:11.5px;font-weight:700;color:#374151;margin-bottom:4px">Owner Name</label>
+            <input type="text" id="edit-ownername" value="${(shop?.ownerName || '').replace(/"/g, '&quot;')}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px"/>
+          </div>
+          <div class="field"><label style="display:block;font-size:11.5px;font-weight:700;color:#374151;margin-bottom:4px">Phone</label>
+            <input type="text" id="edit-phone" value="${(shop?.phone || '').replace(/"/g, '&quot;')}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px"/>
+          </div>
+        </div>
+        <div class="field" style="margin-bottom:10px"><label style="display:block;font-size:11.5px;font-weight:700;color:#374151;margin-bottom:4px">Email</label>
+          <input type="email" id="edit-email" value="${(shop?.email || '').replace(/"/g, '&quot;')}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px"/>
+        </div>
+        <div class="field" style="margin-bottom:10px"><label style="display:block;font-size:11.5px;font-weight:700;color:#374151;margin-bottom:4px">Address</label>
+          <input type="text" id="edit-address" value="${(shop?.address || '').replace(/"/g, '&quot;')}" style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:7px;font-size:13px"/>
+        </div>
+        <button onclick="window.saveShopInfo('${uid}')" style="width:100%;padding:9px;background:var(--navy);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer">💾 Save Shop Info</button>
+        <div id="edit-msg" style="font-size:12px;margin-top:6px;display:none;color:#059669"></div>
+        <div style="font-size:11px;color:var(--gray);margin-top:8px">💡 Naam pata nahi? Order list mein customer ka naam/date dekh ke shop owner ko call/WhatsApp karke pooch sakte ho.</div>
+      </div>
       <div class="section-lbl">Recent Orders (${orders.length} total)</div>`;
 
     if (orders.length === 0) {
       html += `<div class="empty-state">Is shop ka koi order nahi hai abhi tak.</div>`;
     } else {
-      html += `<table><thead><tr><th>Customer</th><th>Date</th><th>Payable</th><th>Status</th></tr></thead><tbody>`;
+      html += `<table><thead><tr><th>Customer</th><th>Mobile</th><th>Date</th><th>Payable</th><th>Status</th></tr></thead><tbody>`;
       orders.slice(0, 20).forEach(o => {
         const dateStr = o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-IN') : '-';
-        html += `<tr><td>${o.customerName || '-'}</td><td>${dateStr}</td><td>Rs. ${(o.totals?.payable || 0).toFixed(2)}</td><td>${o.status || '-'}</td></tr>`;
+        html += `<tr><td>${o.customerName || '-'}</td><td>${o.mobile || '-'}</td><td>${dateStr}</td><td>Rs. ${(o.totals?.payable || 0).toFixed(2)}</td><td>${o.status || '-'}</td></tr>`;
       });
       html += `</tbody></table>`;
       if (orders.length > 20) html += `<div style="font-size:12px;color:var(--gray);margin-top:8px">... aur ${orders.length - 20} orders</div>`;
@@ -385,6 +419,39 @@ window.openShopDetail = async function (uid) {
     document.getElementById('detail-body').innerHTML = html;
   } catch (err) {
     document.getElementById('detail-body').innerHTML = `<div class="empty-state">Error: ${err.message}</div>`;
+  }
+};
+
+window.saveShopInfo = async function (uid) {
+  const msg = document.getElementById('edit-msg');
+  const data = {
+    shopName: document.getElementById('edit-shopname').value.trim(),
+    ownerName: document.getElementById('edit-ownername').value.trim(),
+    phone: document.getElementById('edit-phone').value.trim(),
+    email: document.getElementById('edit-email').value.trim(),
+    address: document.getElementById('edit-address').value.trim(),
+  };
+  try {
+    await setDoc(doc(db, "users", uid), data, { merge: true });
+    // Reflect locally so the table/list updates without a full reload.
+    const shop = allShops.find(s => s.uid === uid);
+    if (shop) {
+      Object.assign(shop, data, { hasProfile: true });
+      window.renderShops();
+    }
+    document.getElementById('detail-shopname').textContent = data.shopName || 'Shop';
+    msg.textContent = '✅ Saved!';
+    msg.style.display = 'block';
+
+    // Log this too — admin editing a shop's identifying info is worth tracking.
+    await addDoc(collection(db, "adminAuditLogs"), {
+      action: 'Edited shop info', targetUid: uid, targetShopName: data.shopName || '(no name)',
+      adminUid: currentAdminUid, device: navigator.userAgent, createdAt: new Date().toISOString(),
+    });
+  } catch (e) {
+    msg.textContent = 'Error: ' + e.message;
+    msg.style.color = '#DC2626';
+    msg.style.display = 'block';
   }
 };
 
