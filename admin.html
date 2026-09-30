@@ -46,6 +46,14 @@
   .status-badge { font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
   .status-badge.active { background: #D1FAE5; color: #047857; }
   .status-badge.suspended { background: #FEE2E2; color: #B91C1C; }
+
+  .qr-btn { padding: 8px 16px; border-radius: 9px; border: 1.5px solid var(--border); background: white; font-size: 13px; font-weight: 600; color: var(--navy); cursor: pointer; }
+  .qr-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .exp-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
+  .exp-expired { background: #FEE2E2; color: #B91C1C; }
+  .exp-soon { background: #FEF3C7; color: #B45309; }
+  .exp-healthy { background: #D1FAE5; color: #047857; }
+  .exp-none { background: #F3F4F6; color: var(--gray); }
   .shop-actions { display: flex; gap: 6px; margin-top: 8px; }
   .shop-actions button { border: none; border-radius: 7px; padding: 6px 12px; font-size: 11.5px; font-weight: 700; cursor: pointer; }
   .btn-suspend { background: #FEE2E2; color: #B91C1C; }
@@ -100,21 +108,61 @@
       <div class="stat-card"><div class="lbl">Total Shops</div><div class="val" id="stat-shops">0</div></div>
       <div class="stat-card"><div class="lbl">Active</div><div class="val" id="stat-active">0</div></div>
       <div class="stat-card"><div class="lbl">Suspended</div><div class="val" id="stat-suspended" style="color:#EF4444">0</div></div>
+      <div class="stat-card"><div class="lbl">New This Week</div><div class="val" id="stat-new-week" style="color:#4F6BF0">0</div></div>
+      <div class="stat-card"><div class="lbl">Expiring Soon</div><div class="val" id="stat-expiring" style="color:#F59E0B">0</div></div>
       <div class="stat-card"><div class="lbl">Total Orders (All Shops)</div><div class="val" id="stat-orders">0</div></div>
       <div class="stat-card"><div class="lbl">Total Revenue (All Shops)</div><div class="val" id="stat-revenue">Rs. 0</div></div>
     </div>
 
-    <div class="search-row">
-      <input type="text" id="search" placeholder="Search shop name, owner, phone, email..." oninput="window.renderShops()"/>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <button class="qr-btn active" data-view="all" onclick="window.setView('all')">📋 All Shops</button>
+      <button class="qr-btn" data-view="new" onclick="window.setView('new')">🆕 New Signups</button>
+      <button class="qr-btn" data-view="expiry" onclick="window.setView('expiry')">⏰ Subscription Expiry</button>
     </div>
 
-    <div class="table-wrap">
-      <table class="shop-table">
-        <thead>
-          <tr><th>#</th><th>Shop Name</th><th>Email</th><th>Status</th><th>Yearly Revenue</th><th>Orders</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="shop-list"><tr><td colspan="7" class="loading">Loading shops...</td></tr></tbody>
-      </table>
+    <div id="view-all">
+      <div class="search-row">
+        <input type="text" id="search" placeholder="Search shop name, owner, phone, email..." oninput="window.renderShops()"/>
+      </div>
+
+      <div class="table-wrap">
+        <table class="shop-table">
+          <thead>
+            <tr><th>#</th><th>Shop Name</th><th>Email</th><th>Status</th><th>Yearly Revenue</th><th>Orders</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="shop-list"><tr><td colspan="7" class="loading">Loading shops...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-new" style="display:none">
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <button class="qr-btn active" data-range="today" onclick="window.setNewRange('today')">Today</button>
+        <button class="qr-btn" data-range="week" onclick="window.setNewRange('week')">This Week</button>
+        <button class="qr-btn" data-range="month" onclick="window.setNewRange('month')">This Month</button>
+        <button class="qr-btn" data-range="all" onclick="window.setNewRange('all')">All Time</button>
+        <button class="qr-btn" data-range="custom" onclick="window.setNewRange('custom')">Custom</button>
+      </div>
+      <div id="new-custom-fields" style="display:none;gap:10px;margin-bottom:14px;flex-wrap:wrap" >
+        <input type="date" id="new-from" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"/>
+        <input type="date" id="new-to" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px"/>
+        <button class="qr-btn" style="border-color:var(--accent);color:var(--accent)" onclick="window.applyNewCustomRange()">Apply</button>
+      </div>
+      <div class="table-wrap">
+        <table class="shop-table">
+          <thead><tr><th>#</th><th>Shop Name</th><th>Owner</th><th>Email</th><th>Phone</th><th>Signed Up</th></tr></thead>
+          <tbody id="new-signups-list"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="view-expiry" style="display:none">
+      <div class="table-wrap">
+        <table class="shop-table">
+          <thead><tr><th>#</th><th>Shop Name</th><th>Email</th><th>Plan Verified</th><th>Subscription Ends</th><th>Status</th></tr></thead>
+          <tbody id="expiry-list"><tr><td colspan="6" class="loading">Loading...</td></tr></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -162,6 +210,123 @@ requireAdmin((user) => {
 window.adminLogout = function () {
   signOut(auth).then(() => { window.location.href = "index.html"; });
 };
+
+let currentView = 'all';
+let newRangeFrom = null, newRangeTo = null; // null/null = "today" gets set on first render
+
+window.setView = function (view) {
+  currentView = view;
+  document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  document.getElementById('view-all').style.display = view === 'all' ? '' : 'none';
+  document.getElementById('view-new').style.display = view === 'new' ? '' : 'none';
+  document.getElementById('view-expiry').style.display = view === 'expiry' ? '' : 'none';
+  if (view === 'new') window.setNewRange('today');
+  if (view === 'expiry') renderExpiry();
+};
+
+window.setNewRange = function (range) {
+  document.querySelectorAll('[data-range]').forEach(b => b.classList.toggle('active', b.dataset.range === range));
+  document.getElementById('new-custom-fields').style.display = range === 'custom' ? 'flex' : 'none';
+
+  const now = new Date();
+  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0);
+  const endOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+
+  if (range === 'today') { newRangeFrom = startOfDay(now); newRangeTo = endOfDay(now); }
+  else if (range === 'week') {
+    const day = now.getDay();
+    const monday = new Date(now); monday.setDate(now.getDate() - ((day + 6) % 7));
+    newRangeFrom = startOfDay(monday); newRangeTo = endOfDay(now);
+  } else if (range === 'month') { newRangeFrom = startOfDay(new Date(now.getFullYear(), now.getMonth(), 1)); newRangeTo = endOfDay(now); }
+  else if (range === 'all') { newRangeFrom = null; newRangeTo = null; }
+  else if (range === 'custom') { return; } // wait for Apply
+
+  renderNewSignups();
+};
+
+window.applyNewCustomRange = function () {
+  const fromVal = document.getElementById('new-from').value;
+  const toVal = document.getElementById('new-to').value;
+  if (!fromVal || !toVal) { alert('Select both From and To dates.'); return; }
+  newRangeFrom = new Date(fromVal + 'T00:00:00');
+  newRangeTo = new Date(toVal + 'T23:59:59');
+  renderNewSignups();
+};
+
+function shopCreatedDate(shop) {
+  // createdAt is a Firestore Timestamp on normal signups; legacy/self-healed
+  // profiles may not have it at all.
+  if (!shop.createdAt) return null;
+  return shop.createdAt.toDate ? shop.createdAt.toDate() : new Date(shop.createdAt);
+}
+
+function renderNewSignups() {
+  const tbody = document.getElementById('new-signups-list');
+  let list = allShops.filter(s => {
+    const d = shopCreatedDate(s);
+    if (!d) return false;
+    if (newRangeFrom && d < newRangeFrom) return false;
+    if (newRangeTo && d > newRangeTo) return false;
+    return true;
+  });
+  list.sort((a, b) => shopCreatedDate(b) - shopCreatedDate(a));
+
+  if (list.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No new signups in this range.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map((s, i) => {
+    const d = shopCreatedDate(s);
+    return `<tr>
+      <td>${i + 1}</td>
+      <td style="font-weight:700;color:var(--navy)">${s.shopName || '(No shop name)'}</td>
+      <td>${s.ownerName || '-'}</td>
+      <td>${s.email || '-'}</td>
+      <td>${s.phone || '-'}</td>
+      <td>${d.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Subscription runs 30 days from the last verified payment. No auto-renewal
+// exists (no backend to re-charge), so this is purely a tracking/reminder
+// view — you'd still contact the shop and re-verify manually each month.
+function renderExpiry() {
+  const tbody = document.getElementById('expiry-list');
+  const now = new Date();
+
+  const rows = allShops
+    .filter(s => s.paymentVerifiedAt)
+    .map(s => {
+      const verifiedDate = new Date(s.paymentVerifiedAt);
+      const endDate = new Date(verifiedDate);
+      endDate.setDate(endDate.getDate() + 30);
+      const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+      return { shop: s, verifiedDate, endDate, daysLeft };
+    })
+    .sort((a, b) => a.daysLeft - b.daysLeft); // most urgent first
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">No shop has a verified payment on record yet.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map((r, i) => {
+    let badge, label;
+    if (r.daysLeft < 0) { badge = 'exp-expired'; label = `⚠️ Expired ${Math.abs(r.daysLeft)}d ago`; }
+    else if (r.daysLeft <= 7) { badge = 'exp-soon'; label = `⏰ ${r.daysLeft}d left`; }
+    else { badge = 'exp-healthy'; label = `✅ ${r.daysLeft}d left`; }
+
+    return `<tr>
+      <td>${i + 1}</td>
+      <td style="font-weight:700;color:var(--navy)">${r.shop.shopName || '(No shop name)'}</td>
+      <td>${r.shop.email || '-'}</td>
+      <td>${r.verifiedDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+      <td>${r.endDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+      <td><span class="exp-badge ${badge}">${label}</span></td>
+    </tr>`;
+  }).join('');
+}
 
 async function loadAllShops() {
   const listEl = document.getElementById('shop-list');
@@ -236,6 +401,27 @@ function updateGlobalStats() {
   document.getElementById('stat-revenue').textContent = 'Rs. ' + totalRevenue.toFixed(2);
   document.getElementById('stat-active').textContent = allShops.length - suspendedCount;
   document.getElementById('stat-suspended').textContent = suspendedCount;
+
+  // New This Week
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now); monday.setDate(now.getDate() - ((day + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  const newThisWeek = allShops.filter(s => {
+    const d = shopCreatedDate(s);
+    return d && d >= monday;
+  }).length;
+  document.getElementById('stat-new-week').textContent = newThisWeek;
+
+  // Expiring Soon (verified payment, subscription ending within 7 days or already expired)
+  const expiringSoon = allShops.filter(s => {
+    if (!s.paymentVerifiedAt) return false;
+    const endDate = new Date(s.paymentVerifiedAt);
+    endDate.setDate(endDate.getDate() + 30);
+    const daysLeft = Math.ceil((endDate - now) / (1000 * 60 * 60 * 24));
+    return daysLeft <= 7;
+  }).length;
+  document.getElementById('stat-expiring').textContent = expiringSoon;
 }
 
 window.renderShops = function () {
