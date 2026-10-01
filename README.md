@@ -18,7 +18,7 @@
 
 
 
-🔗 **Live Demo:** [shaikhnasrullah.github.io/CRMpro](fralencrm.in)
+🔗 **Live Demo:** [fralencrm.in](fralencrm.in)
 
 ---
 
