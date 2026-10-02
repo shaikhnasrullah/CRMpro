@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Data Migration</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --gray: #6B7280; --border: #C5D3E8;
+    --green: #10B981; --orange: #F59E0B; --red: #EF4444;
+  }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; padding-bottom: 30px; }
+
+  .topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+  .topbar-logo span { color: #7B93FF; }
+  .back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .page-title { background: white; padding: 14px 20px; font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--accent); }
+  .container { padding: 16px; max-width: 900px; margin: 0 auto; }
+
+  .step { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; }
+  .step.disabled { opacity: 0.5; pointer-events: none; }
+  .step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .step-num { width: 26px; height: 26px; border-radius: 50%; background: var(--navy); color: white; font-size: 13px; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .step-head h3 { font-size: 14.5px; font-weight: 800; color: var(--navy); }
+
+  .template-btn { background: var(--accent-soft); color: var(--accent); border: none; border-radius: 9px; padding: 11px 18px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .template-btn:hover { background: #DCE4FF; }
+  .hint { font-size: 12px; color: var(--gray); margin-top: 8px; line-height: 1.5; }
+
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 30px 16px; text-align: center;
+    cursor: pointer; transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+  .drop-zone .icon { font-size: 32px; margin-bottom: 8px; }
+  .drop-zone .txt { font-size: 13.5px; color: var(--navy); font-weight: 600; }
+  .drop-zone .sub { font-size: 11.5px; color: var(--gray); margin-top: 4px; }
+  #file-input { display: none; }
+  .file-chosen { display: flex; align-items: center; justify-content: space-between; background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--navy); font-weight: 600; }
+  .file-chosen button { background: none; border: none; color: var(--red); font-weight: 700; cursor: pointer; font-size: 12px; }
+
+  .map-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+  .map-table th { background: #F3F4F6; color: var(--navy); font-size: 11px; text-transform: uppercase; padding: 8px 10px; text-align: left; }
+  .map-table td { padding: 8px 10px; border-bottom: 1px solid #F3F4F6; font-size: 13px; }
+  .map-table select { padding: 6px 8px; border: 1.5px solid var(--border); border-radius: 7px; font-size: 12.5px; font-family: 'Inter', sans-serif; width: 100%; }
+  .map-table .sample { color: var(--gray); font-size: 11.5px; }
+  .map-req { color: var(--red); }
+
+  .preview-table-wrap { overflow-x: auto; margin-top: 10px; border: 1px solid var(--border); border-radius: 10px; }
+  table.preview-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+  table.preview-table th { background: var(--navy); color: white; font-size: 11px; padding: 8px 10px; text-align: left; white-space: nowrap; }
+  table.preview-table td { padding: 7px 10px; border-bottom: 1px solid #F3F4F6; font-size: 12.5px; white-space: nowrap; }
+  tr.row-invalid td { background: #FEF2F2; color: #B91C1C; }
+  tr.row-duplicate td { background: #FFFBEB; color: #B45309; }
+  .row-flag { font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+  .flag-ok { background: #D1FAE5; color: #047857; }
+  .flag-invalid { background: #FEE2E2; color: #B91C1C; }
+  .flag-dup { background: #FEF3C7; color: #B45309; }
+
+  .summary-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+  .sum-card { flex: 1; min-width: 110px; background: #F9FAFB; border-radius: 10px; padding: 12px; text-align: center; }
+  .sum-card .n { font-size: 20px; font-weight: 800; color: var(--navy); }
+  .sum-card .l { font-size: 10.5px; color: var(--gray); font-weight: 600; text-transform: uppercase; }
+  .sum-card.c-ok .n { color: var(--green); }
+  .sum-card.c-dup .n { color: var(--orange); }
+  .sum-card.c-bad .n { color: var(--red); }
+
+  .btn { padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 700; cursor: pointer; border: none; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--navy); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-secondary { background: var(--accent-soft); color: var(--accent); }
+
+  .progress-wrap { background: #F3F4F6; border-radius: 10px; height: 10px; overflow: hidden; margin: 14px 0 6px; }
+  .progress-bar { background: var(--accent); height: 100%; width: 0%; transition: width 0.2s; }
+  .progress-label { font-size: 12px; color: var(--gray); text-align: center; }
+
+  .done-banner { background: #D1FAE5; color: #047857; border-radius: 10px; padding: 14px; text-align: center; font-weight: 700; font-size: 14px; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+</div>
+
+<div class="page-title">📊 Smart Data Migration — Excel to CRM</div>
+
+<div class="container">
+
+  <!-- STEP 1: TEMPLATE / UPLOAD -->
+  <div class="step" id="step1">
+    <div class="step-head"><div class="step-num">1</div><h3>Download Template or Upload Your Excel</h3></div>
+    <button class="template-btn" onclick="window.downloadTemplate()">⬇ Download Sample Template (.xlsx)</button>
+    <div class="hint">Already have your own Excel file? You can upload it directly — we'll try to auto-match your column names in the next step. The sample template just shows the ideal format.</div>
+
+    <div style="margin-top:16px">
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="icon">📁</div>
+        <div class="txt">Click to choose a file, or drag & drop here</div>
+        <div class="sub">.xlsx or .csv</div>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv"/>
+      <div id="file-chosen-area"></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: COLUMN MAPPING -->
+  <div class="step disabled" id="step2">
+    <div class="step-head"><div class="step-num">2</div><h3>Match Your Columns</h3></div>
+    <div class="hint" style="margin-top:0;margin-bottom:12px">Tell us which column in your file is which. We've guessed based on your headers — double check before continuing.</div>
+    <div style="overflow-x:auto">
+      <table class="map-table" id="map-table"><tbody></tbody></table>
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="window.buildPreview()">Preview Import →</button>
+  </div>
+
+  <!-- STEP 3: PREVIEW -->
+  <div class="step disabled" id="step3">
+    <div class="step-head"><div class="step-num">3</div><h3>Preview &amp; Import Summary</h3></div>
+    <div class="summary-row">
+      <div class="sum-card"><div class="n" id="sum-total">0</div><div class="l">Total Rows</div></div>
+      <div class="sum-card c-ok"><div class="n" id="sum-ok">0</div><div class="l">Ready to Import</div></div>
+      <div class="sum-card c-dup"><div class="n" id="sum-dup">0</div><div class="l">Duplicates (skipped)</div></div>
+      <div class="sum-card c-bad"><div class="n" id="sum-bad">0</div><div class="l">Invalid (skipped)</div></div>
+    </div>
+    <div class="preview-table-wrap">
+      <table class="preview-table">
+        <thead><tr><th>Status</th><th>Customer</th><th>Mobile</th><th>Date</th><th>Product</th><th>Amount</th></tr></thead>
+        <tbody id="preview-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px" id="start-import-btn" onclick="window.startImport()">✅ Start Import</button>
+    <button class="btn btn-secondary" style="margin-top:16px" onclick="window.downloadErrorReport()">⬇ Download Skipped Rows Report</button>
+  </div>
+
+  <!-- STEP 4: RESULT -->
+  <div class="step disabled" id="step4">
+    <div class="step-head"><div class="step-num">4</div><h3>Importing...</h3></div>
+    <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+    <div class="progress-label" id="progress-label">0 / 0</div>
+    <div id="done-area"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { requireAuth, tenantCollection } from "./firebase-config.js";
+
+let currentUid = null;
+let rawRows = [];
+let headers = [];
+let columnMap = {}; // { fieldKey: headerName }
+let previewRows = [];
+let existingSignatures = new Set(); // for duplicate detection against orders already in Firestore
+
+const FIELD_DEFS = [
+  { key: 'customerName', label: 'Customer Name', required: true, aliases: ['customer name', 'name', 'customer', 'client name'] },
+  { key: 'mobile', label: 'Mobile Number', required: true, aliases: ['mobile', 'phone', 'contact', 'mobile number', 'phone number'] },
+  { key: 'date', label: 'Order Date', required: true, aliases: ['date', 'order date', 'purchase date', 'bill date'] },
+  { key: 'product', label: 'Product / Item', required: false, aliases: ['product', 'item', 'frame', 'description', 'particulars'] },
+  { key: 'amount', label: 'Amount (Rs.)', required: true, aliases: ['amount', 'total', 'price', 'bill amount', 'total amount'] },
+  { key: 'advance', label: 'Advance Paid (optional)', required: false, aliases: ['advance', 'paid', 'advance paid'] },
+  { key: 'status', label: 'Status (Paid/Pending, optional)', required: false, aliases: ['status', 'payment status'] },
+];
+
+requireAuth((user) => { currentUid = user.uid; });
+
+/* ---------------- STEP 1: TEMPLATE + UPLOAD ---------------- */
+window.downloadTemplate = function () {
+  const sample = [{
+    'Customer Name': 'Rahul Sharma', 'Mobile Number': '9876543210', 'Order Date': '15/03/2025',
+    'Product / Item': 'Ray-Ban Frame', 'Amount (Rs.)': 3500, 'Advance Paid': 3500, 'Status': 'Paid',
+  }];
+  const ws = XLSX.utils.json_to_sheet(sample);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Customers');
+  XLSX.writeFile(wb, 'FRALEN_Import_Template.xlsx');
+};
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+fileInput.addEventListener('change', (e) => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+
+function handleFile(file) {
+  document.getElementById('file-chosen-area').innerHTML = `
+    <div class="file-chosen" style="margin-top:10px">
+      <span>📄 ${file.name}</span>
+      <button onclick="window.resetFile()">Remove</button>
+    </div>`;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const data = new Uint8Array(e.target.result);
+    const wb = XLSX.read(data, { type: 'array', cellDates: true });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+    if (rawRows.length === 0) { alert('This file has no data rows.'); return; }
+    headers = Object.keys(rawRows[0]);
+    buildColumnMapUI();
+    document.getElementById('step2').classList.remove('disabled');
+    document.getElementById('step2').scrollIntoView({ behavior: 'smooth' });
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+window.resetFile = function () {
+  rawRows = []; headers = [];
+  fileInput.value = '';
+  document.getElementById('file-chosen-area').innerHTML = '';
+  document.getElementById('step2').classList.add('disabled');
+  document.getElementById('step3').classList.add('disabled');
+};
+
+/* ---------------- STEP 2: COLUMN MAPPING ---------------- */
+function guessColumn(fieldDef) {
+  const match = headers.find(h => fieldDef.aliases.includes(h.trim().toLowerCase()));
+  return match || '';
+}
+
+function buildColumnMapUI() {
+  const tbody = document.querySelector('#map-table tbody');
+  let html = `<tr><th>Our Field</th><th>Your Column</th><th>Sample Value</th></tr>`;
+  FIELD_DEFS.forEach(f => {
+    const guessed = guessColumn(f);
+    columnMap[f.key] = guessed;
+    const sample = guessed && rawRows[0] ? String(rawRows[0][guessed]).slice(0, 24) : '-';
+    html += `
+      <tr>
+        <td>${f.label}${f.required ? ' <span class="map-req">*</span>' : ''}</td>
+        <td>
+          <select onchange="window.updateMapping('${f.key}', this.value)">
+            <option value="">-- Not in my file --</option>
+            ${headers.map(h => `<option value="${h}" ${h === guessed ? 'selected' : ''}>${h}</option>`).join('')}
+          </select>
+        </td>
+        <td class="sample">${sample}</td>
+      </tr>`;
+  });
+  tbody.innerHTML = html;
+}
+
+window.updateMapping = function (key, value) {
+  columnMap[key] = value;
+};
+
+/* ---------------- STEP 3: PREVIEW + VALIDATION + DUPLICATES ---------------- */
+function parseDate(val) {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val) ? null : val;
+  const str = String(val).trim();
+  // Try DD/MM/YYYY first (most common in Indian shop exports), then fall back to native parsing.
+  const m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let [, d, mo, y] = m;
+    if (y.length === 2) y = '20' + y;
+    const dt = new Date(Number(y), Number(mo) - 1, Number(d));
+    return isNaN(dt) ? null : dt;
+  }
+  const dt = new Date(str);
+  return isNaN(dt) ? null : dt;
+}
+
+window.buildPreview = async function () {
+  const required = FIELD_DEFS.filter(f => f.required);
+  const missing = required.filter(f => !columnMap[f.key]);
+  if (missing.length > 0) {
+    alert('Please map these required fields first: ' + missing.map(f => f.label).join(', '));
+    return;
+  }
+
+  // Load existing orders once, to flag rows that look like they were already imported/entered.
+  try {
+    const snap = await getDocs(tenantCollection(currentUid, "orders"));
+    existingSignatures = new Set();
+    snap.forEach(d => {
+      const o = d.data();
+      const sig = `${(o.mobile || '').replace(/\D/g, '')}|${(o.createdAt || '').slice(0, 10)}|${Math.round(o.totals?.payable || 0)}`;
+      existingSignatures.add(sig);
+    });
+  } catch (e) {
+    console.error('Could not load existing orders for duplicate check:', e);
+  }
+
+  previewRows = rawRows.map((row) => {
+    const customerName = String(row[columnMap.customerName] || '').trim();
+    const mobileRaw = String(row[columnMap.mobile] || '').trim();
+    const mobile = mobileRaw.replace(/\D/g, '');
+    const dateVal = parseDate(row[columnMap.date]);
+    const product = columnMap.product ? String(row[columnMap.product] || '').trim() : '';
+    const amount = parseFloat(row[columnMap.amount]);
+    const advanceRaw = columnMap.advance ? parseFloat(row[columnMap.advance]) : NaN;
+    const statusRaw = columnMap.status ? String(row[columnMap.status] || '').toLowerCase() : '';
+
+    const errors = [];
+    if (!customerName) errors.push('Missing customer name');
+    if (!mobile || mobile.length < 10) errors.push('Invalid/missing mobile');
+    if (!dateVal) errors.push('Invalid/missing date');
+    if (isNaN(amount) || amount <= 0) errors.push('Invalid/missing amount');
+
+    let flag = 'ok';
+    if (errors.length > 0) {
+      flag = 'invalid';
+    } else {
+      const sig = `${mobile}|${dateVal.toISOString().slice(0, 10)}|${Math.round(amount)}`;
+      if (existingSignatures.has(sig)) flag = 'duplicate';
+    }
+
+    const advance = !isNaN(advanceRaw) ? advanceRaw : (statusRaw.includes('paid') && !statusRaw.includes('pending') ? amount : 0);
+
+    return { customerName, mobile, dateVal, product, amount, advance, errors, flag };
+  });
+
+  renderPreview();
+  document.getElementById('step3').classList.remove('disabled');
+  document.getElementById('step3').scrollIntoView({ behavior: 'smooth' });
+};
+
+function renderPreview() {
+  const okCount = previewRows.filter(r => r.flag === 'ok').length;
+  const dupCount = previewRows.filter(r => r.flag === 'duplicate').length;
+  const badCount = previewRows.filter(r => r.flag === 'invalid').length;
+
+  document.getElementById('sum-total').textContent = previewRows.length;
+  document.getElementById('sum-ok').textContent = okCount;
+  document.getElementById('sum-dup').textContent = dupCount;
+  document.getElementById('sum-bad').textContent = badCount;
+  document.getElementById('start-import-btn').disabled = okCount === 0;
+
+  const tbody = document.getElementById('preview-tbody');
+  const shown = previewRows.slice(0, 50); // keep the preview table light; summary counts cover the full set
+  tbody.innerHTML = shown.map(r => {
+    const rowClass = r.flag === 'invalid' ? 'row-invalid' : (r.flag === 'duplicate' ? 'row-duplicate' : '');
+    const badge = r.flag === 'invalid' ? `<span class="row-flag flag-invalid" title="${r.errors.join(', ')}">⚠ Invalid</span>`
+      : r.flag === 'duplicate' ? `<span class="row-flag flag-dup">⏭ Duplicate</span>`
+      : `<span class="row-flag flag-ok">✓ Ready</span>`;
+    return `<tr class="${rowClass}">
+      <td>${badge}</td>
+      <td>${r.customerName || '-'}</td>
+      <td>${r.mobile || '-'}</td>
+      <td>${r.dateVal ? r.dateVal.toLocaleDateString('en-IN') : '-'}</td>
+      <td>${r.product || '-'}</td>
+      <td>${isNaN(r.amount) ? '-' : 'Rs. ' + r.amount.toFixed(2)}</td>
+    </tr>`;
+  }).join('') + (previewRows.length > 50 ? `<tr><td colspan="6" style="text-align:center;color:var(--gray)">...and ${previewRows.length - 50} more rows (not shown, but included in the summary above)</td></tr>` : '');
+}
+
+window.downloadErrorReport = function () {
+  const skipped = previewRows.filter(r => r.flag !== 'ok');
+  if (skipped.length === 0) { alert('No skipped rows — everything looks importable.'); return; }
+  const rows = skipped.map(r => ({
+    'Customer Name': r.customerName, 'Mobile': r.mobile,
+    'Date': r.dateVal ? r.dateVal.toLocaleDateString('en-IN') : '',
+    'Product': r.product, 'Amount': isNaN(r.amount) ? '' : r.amount,
+    'Reason Skipped': r.flag === 'duplicate' ? 'Duplicate of an existing order' : r.errors.join('; '),
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Skipped Rows');
+  XLSX.writeFile(wb, 'FRALEN_Import_Skipped_Rows.xlsx');
+};
+
+/* ---------------- STEP 4: IMPORT ---------------- */
+window.startImport = async function () {
+  const toImport = previewRows.filter(r => r.flag === 'ok');
+  if (toImport.length === 0) return;
+  if (!confirm(`Import ${toImport.length} record(s) into your CRM? This can't be bulk-undone — review the preview first if you haven't.`)) return;
+
+  document.getElementById('step4').classList.remove('disabled');
+  document.getElementById('step4').scrollIntoView({ behavior: 'smooth' });
+
+  let done = 0;
+  const bar = document.getElementById('progress-bar');
+  const label = document.getElementById('progress-label');
+  let failCount = 0;
+
+  for (const r of toImport) {
+    const isoDate = r.dateVal.toISOString();
+    const payable = r.amount;
+    const advance = Math.min(r.advance || 0, payable);
+    const pending = Math.max(0, payable - advance);
+
+    const order = {
+      customerName: r.customerName,
+      mobile: r.mobile,
+      orderDate: isoDate.slice(0, 10),
+      products: r.product ? [{ name: r.product, price: payable, total: payable, gstPct: 0, discPct: 0 }] : [],
+      totals: { basic: payable, gst: 0, sales: payable, itemDiscount: 0, couponDiscount: 0, loyaltyDiscount: 0, payable, advance, pending },
+      payments: advance > 0 ? [{ amount: advance, mode: 'Cash', type: 'advance', date: isoDate }] : [],
+      status: pending <= 0 ? 'confirmed' : 'pending',
+      orderStage: 'Delivered', // imported historical orders are assumed already completed
+      hasLens: false,
+      prescription: null,
+      importedFromExcel: true,
+      createdAt: isoDate, // preserves the ORIGINAL transaction date, not today
+    };
+
+    try {
+      await addDoc(tenantCollection(currentUid, "orders"), order);
+    } catch (e) {
+      failCount++;
+      console.error('Import failed for row:', r, e);
+    }
+    done++;
+    const pct = Math.round((done / toImport.length) * 100);
+    bar.style.width = pct + '%';
+    label.textContent = `${done} / ${toImport.length}`;
+  }
+
+  document.getElementById('done-area').innerHTML = `
+    <div class="done-banner">
+      ✅ Import complete! ${done - failCount} record(s) added${failCount > 0 ? `, ${failCount} failed (check browser console)` : ''}.
+    </div>
+    <button class="btn btn-primary" onclick="window.location.href='sales-history.html'">View in Sales History →</button>`;
+};
+</script>
+
+</body>
+</html>
