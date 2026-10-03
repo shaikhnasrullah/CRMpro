@@ -1,8 +1,8 @@
 /* FRALEN CRM cookie consent. Load from index.html and privacy/privacy-policy.html only. */
 (function () {
   var SRC = (document.currentScript && document.currentScript.src) || location.href;
-  var POLICY = new URL("privacy/privacy-policy.html", SRC).href;
-  var HOME = new URL("index.html", SRC).href;
+  var POLICY = new URL("../privacy/privacy-policy.html", SRC).href;
+  var HOME = new URL("../index.html", SRC).href;
   var KEY = "fralen_cookie_consent";
   var saved = null;
   try { saved = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
@@ -70,4 +70,7 @@
       document.getElementById("fccOpts").style.display = "block";
       this.textContent = "Save choices";
     } else {
-      save(document.getEl
+      save(document.getElementById("fccAn").checked);
+    }
+  };
+})();
