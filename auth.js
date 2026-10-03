@@ -1,490 +1,141 @@
-// =========================================================
-// FRALEN CRM AUTH SYSTEM
-// =========================================================
-// Handles:
-// - Login
-// - Signup
-// - Email verification
-// - Password reset
-// - Suspended-shop check
-// - Admin redirect
-// - Verification redirect
-// =========================================================
-
+// auth.js
+// This replaces the old app.js. It only runs on index.html (the login/signup page).
+// It never touches Firestore data collections directly — all of that
+// happens through firebase-config.js on the other pages.
+// auth.js
+// This replaces the old app.js. It only runs on index.html (the login/signup page).
+// It never touches Firestore data collections directly — all of that
+// happens through firebase-config.js on the other pages.
 
 import {
-  auth,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  createUserProfile,
-  isAdminUser,
-  profileDoc,
-  signOut,
+auth,
+onAuthStateChanged,
+signInWithEmailAndPassword,
+createUserWithEmailAndPassword,
+sendPasswordResetEmail,
+createUserProfile,
+isAdminUser,
+profileDoc,
+signOut,
 } from "./firebase-config.js";
+import { getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-
-import {
-  sendEmailVerification
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-
-import {
-  getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-
-// =========================================================
-// SUSPENDED ACCOUNT MESSAGE
-// =========================================================
-
-if (
-  new URLSearchParams(window.location.search).get("suspended") === "1"
-) {
-
-  window.addEventListener("DOMContentLoaded", () => {
-
-    window.showLoginError(
-      "Yeh account suspend kar diya gaya hai. Support se contact karo."
-    );
-
-  });
-
+// Show a message if we just bounced a suspended shop back here.
+if (new URLSearchParams(window.location.search).get('suspended') === '1') {
+window.addEventListener('DOMContentLoaded', () => {
+window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+});
 }
 
-
-// =========================================================
-// AUTH ACTION GUARD
-// =========================================================
-//
-// Prevents onAuthStateChanged from redirecting while
-// signup/login is still processing.
-//
-// Especially important during signup because
-// createUserWithEmailAndPassword() automatically signs
-// the user in and triggers onAuthStateChanged().
-// =========================================================
-
+// IMPORTANT: this is set to true while our OWN signup/login handlers are
+// running, so the auto-redirect listener below doesn't race them. Without
+// this guard, createUserWithEmailAndPassword() signs the user in
+// internally, which fires onAuthStateChanged and could redirect to
+// dashboard.html BEFORE the signup handler's own createUserProfile() call
+// runs — leaving a real account with a blank shop profile.
 let authActionInProgress = false;
 
-
-// =========================================================
-// AUTH STATE LISTENER
-// =========================================================
-//
-// If already logged in:
-//
-// Admin
-//   -> admin.html
-//
-// Normal verified user
-//   -> dashboard.html
-//
-// Normal unverified user
-//   -> verify-email.html
-// =========================================================
-
+// If someone is already logged in and lands on index.html (e.g. they
+// bookmarked this page while still signed in), skip straight to the
+// dashboard — or to the admin panel, if this is the admin account.
 onAuthStateChanged(auth, (user) => {
-
-  if (!user || authActionInProgress) {
-    return;
-  }
-
-
-  // -------------------------
-  // SUPER ADMIN
-  // -------------------------
-
-  if (isAdminUser(user)) {
-
-    window.location.href = "admin.html";
-
-    return;
-  }
-
-
-  // -------------------------
-  // NORMAL USER
-  // -------------------------
-
-  if (!user.emailVerified) {
-
-    window.location.href = "verify-email.html";
-
-    return;
-  }
-
-
-  // -------------------------
-  // VERIFIED USER
-  // -------------------------
-
-  window.location.href = "dashboard.html";
-
+if (user && !authActionInProgress) {
+window.location.href = isAdminUser(user) ? "admin.html" : "dashboard.html";
+}
 });
 
-
-// =========================================================
-// LOGIN
-// =========================================================
-
+// ---------- LOGIN ----------
 const loginForm = document.getElementById("loginForm");
-
-
 loginForm.addEventListener("submit", async () => {
+const email = document.getElementById("login-email").value.trim();
+const password = document.getElementById("login-password").value;
+const btn = document.getElementById("signin-btn");
 
-  const email =
-    document.getElementById("login-email").value.trim();
+btn.textContent = "Signing in...";
+btn.classList.add("loading");
+authActionInProgress = true;
 
-  const password =
-    document.getElementById("login-password").value;
-
-  const btn =
-    document.getElementById("signin-btn");
-
-
-  btn.textContent = "Signing in...";
-
-  btn.classList.add("loading");
-
-  authActionInProgress = true;
-
-
-  try {
-
-    // -------------------------
-    // FIREBASE LOGIN
-    // -------------------------
-
-    const cred =
-      await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-
-    // -------------------------
-    // ADMIN
-    // -------------------------
-    //
-    // Admin verification is not required here
-    // so the existing super-admin account
-    // continues to work normally.
-    // -------------------------
-
-    if (isAdminUser(cred.user)) {
-
-      window.location.href = "admin.html";
-
-      return;
-    }
-
-
-    // -------------------------
-    // EMAIL VERIFICATION CHECK
-    // -------------------------
-
-    if (!cred.user.emailVerified) {
-
-      window.location.href = "verify-email.html";
-
-      return;
-    }
-
-
-    // -------------------------
-    // SUSPENDED SHOP CHECK
-    // -------------------------
-
-    const snap =
-      await getDoc(
-        profileDoc(cred.user.uid)
-      );
-
-
-    if (
-      snap.exists() &&
-      snap.data().status === "suspended"
-    ) {
-
-      await signOut(auth);
-
-
-      window.showLoginError(
-        "Yeh account suspend kar diya gaya hai. Support se contact karo."
-      );
-
-
-      btn.textContent = "Sign In";
-
-      btn.classList.remove("loading");
-
-      authActionInProgress = false;
-
-      return;
-    }
-
-
-    // -------------------------
-    // VERIFIED + ACTIVE USER
-    // -------------------------
-
-    window.location.href = "dashboard.html";
-
-
-  } catch (err) {
-
-    console.error("Login error:", err);
-
-
-    window.showLoginError(
-      friendlyAuthError(err)
-    );
-
-
-    btn.textContent = "Sign In";
-
-    btn.classList.remove("loading");
-
-    authActionInProgress = false;
-
-  }
-
+try {
+const cred = await signInWithEmailAndPassword(auth, email, password);
+if (!isAdminUser(cred.user)) {
+const snap = await getDoc(profileDoc(cred.user.uid));
+if (snap.exists() && snap.data().status === "suspended") {
+await signOut(auth);
+window.showLoginError("Yeh account suspend kar diya gaya hai. Support se contact karo.");
+btn.textContent = "Sign In";
+btn.classList.remove("loading");
+authActionInProgress = false;
+return;
+}
+}
+window.location.href = isAdminUser(cred.user) ? "admin.html" : "dashboard.html";
+} catch (err) {
+window.showLoginError(friendlyAuthError(err));
+btn.textContent = "Sign In";
+btn.classList.remove("loading");
+authActionInProgress = false;
+}
 });
 
-
-// =========================================================
-// SIGN UP
-// =========================================================
-//
-// Every signup creates a completely isolated shop account:
-//
-// users/{uid}
-// =========================================================
-
-const signupForm =
-  document.getElementById("signupForm");
-
-
+// ---------- SIGN UP ----------
+// Every signup = a brand new, fully isolated shop account (users/{uid}).
+const signupForm = document.getElementById("signupForm");
 signupForm.addEventListener("submit", async () => {
+const shopName = document.getElementById("su-shop").value.trim();
+const ownerName = document.getElementById("su-owner").value.trim();
+const phone = document.getElementById("su-phone").value.trim();
+const email = document.getElementById("su-email").value.trim();
+const password = document.getElementById("su-password").value;
+const btn = document.getElementById("signup-btn");
 
-  const shopName =
-    document.getElementById("su-shop").value.trim();
+btn.textContent = "Creating account...";
+btn.classList.add("loading");
+authActionInProgress = true;
 
-  const ownerName =
-    document.getElementById("su-owner").value.trim();
-
-  const phone =
-    document.getElementById("su-phone").value.trim();
-
-  const email =
-    document.getElementById("su-email").value.trim();
-
-  const password =
-    document.getElementById("su-password").value;
-
-  const btn =
-    document.getElementById("signup-btn");
-
-
-  btn.textContent = "Creating account...";
-
-  btn.classList.add("loading");
-
-  authActionInProgress = true;
-
-
-  try {
-
-    // -------------------------
-    // CREATE FIREBASE ACCOUNT
-    // -------------------------
-
-    const cred =
-      await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-
-
-    // -------------------------
-    // CREATE SHOP PROFILE
-    // -------------------------
-
-    try {
-
-      await createUserProfile(
-        cred.user.uid,
-        {
-          ownerName,
-          shopName,
-          email,
-          phone
-        }
-      );
-
-    } catch (profileErr) {
-
-      console.error(
-        "Profile creation failed, will self-heal on next page load:",
-        profileErr
-      );
-
-    }
-
-
-    // -------------------------
-    // SEND EMAIL VERIFICATION
-    // -------------------------
-
-    await sendEmailVerification(
-      cred.user
-    );
-
-
-    // -------------------------
-    // GO TO VERIFICATION PAGE
-    // -------------------------
-
-    window.location.href =
-      "verify-email.html";
-
-
-  } catch (err) {
-
-    console.error("Signup error:", err);
-
-
-    window.showLoginError(
-      friendlyAuthError(err)
-    );
-
-
-    btn.textContent = "Create Account";
-
-    btn.classList.remove("loading");
-
-    authActionInProgress = false;
-
-  }
-
+try {
+const cred = await createUserWithEmailAndPassword(auth, email, password);
+// Create the users/{uid} profile document right away, so every
+// subsequent page has a shop profile to read (owner name, shop name, etc).
+// The authActionInProgress guard above stops the auto-redirect listener
+// from firing early and cutting this off before it finishes.
+try {
+await createUserProfile(cred.user.uid, { ownerName, shopName, email, phone });
+} catch (profileErr) {
+console.error("Profile creation failed, will self-heal on next page load:", profileErr);
+}
+window.location.href = "payment.html";
+} catch (err) {
+window.showLoginError(friendlyAuthError(err));
+btn.textContent = "Create Account";
+btn.classList.remove("loading");
+authActionInProgress = false;
+}
 });
 
-
-// =========================================================
-// FORGOT PASSWORD
-// =========================================================
-
+// ---------- FORGOT PASSWORD ----------
 window.handleForgotPassword = async function () {
-
-  const email =
-    document.getElementById("login-email").value.trim();
-
-
-  if (!email) {
-
-    window.showLoginError(
-      "Pehle apna email address likho, phir 'Forgot password?' dabao."
-    );
-
-    return;
-  }
-
-
-  try {
-
-    await sendPasswordResetEmail(
-      auth,
-      email
-    );
-
-
-    window.showLoginSuccess(
-      "Password reset link bhej diya gaya hai " +
-      email +
-      " par."
-    );
-
-
-  } catch (err) {
-
-    console.error(
-      "Password reset error:",
-      err
-    );
-
-
-    window.showLoginError(
-      friendlyAuthError(err)
-    );
-
-  }
-
+const email = document.getElementById("login-email").value.trim();
+if (!email) {
+window.showLoginError("Pehle apna email address likho, phir 'Forgot password?' dabao.");
+return;
+}
+try {
+await sendPasswordResetEmail(auth, email);
+window.showLoginSuccess("Password reset link bhej diya gaya hai " + email + " par.");
+} catch (err) {
+window.showLoginError(friendlyAuthError(err));
+}
 };
 
-
-// =========================================================
-// FRIENDLY FIREBASE AUTH ERRORS
-// =========================================================
-
 function friendlyAuthError(err) {
-
-  const code =
-    err && err.code
-      ? err.code
-      : "";
-
-
-  switch (code) {
-
-    case "auth/invalid-email":
-
-      return "Email address sahi format mein nahi hai.";
-
-
-    case "auth/user-not-found":
-
-      return "Is email se koi account nahi mila.";
-
-
-    case "auth/wrong-password":
-
-    case "auth/invalid-credential":
-
-      return "Email ya password galat hai.";
-
-
-    case "auth/email-already-in-use":
-
-      return "Is email se ek account pehle se hai. Login karo.";
-
-
-    case "auth/weak-password":
-
-      return "Password kam se kam 6 characters ka hona chahiye.";
-
-
-    case "auth/too-many-requests":
-
-      return "Bahut zyada attempts ho gaye hain. Thodi der baad dobara try karo.";
-
-
-    case "auth/network-request-failed":
-
-      return "Internet connection check karo aur dobara try karo.";
-
-
-    default:
-
-      return (
-        err && err.message
-          ? err.message
-          : "Kuch galat ho gaya. Dobara try karo."
-      );
-
-  }
-
+const code = err && err.code ? err.code : "";
+switch (code) {
+case "auth/invalid-email": return "Email address sahi format mein nahi hai.";
+case "auth/user-not-found": return "Is email se koi account nahi mila.";
+case "auth/wrong-password":
+case "auth/invalid-credential": return "Email ya password galat hai.";
+case "auth/email-already-in-use": return "Is email se ek account pehle se hai. Login karo.";
+case "auth/weak-password": return "Password kam se kam 6 characters ka hona chahiye.";
+default: return (err && err.message) ? err.message : "Kuch galat ho gaya. Dobara try karo.";
+}
 }
