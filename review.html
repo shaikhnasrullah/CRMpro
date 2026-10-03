@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Share Your Experience</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', sans-serif; background: #F0F2FA; min-height: 100vh; padding: 24px 16px; }
+  .wrap { max-width: 440px; margin: 0 auto; }
+  .head { text-align: center; margin-bottom: 20px; }
+  .head .icon { font-size: 40px; margin-bottom: 8px; }
+  .head h1 { font-family: 'Montserrat', sans-serif; font-size: 19px; font-weight: 800; color: #1B2A6B; }
+  .head p { font-size: 13px; color: #6B7280; margin-top: 6px; }
+
+  .card { background: white; border-radius: 18px; padding: 22px; box-shadow: 0 8px 40px rgba(27,42,107,0.10); margin-bottom: 14px; }
+  .card h3 { font-size: 13px; font-weight: 800; color: #1B2A6B; margin-bottom: 12px; text-align: center; }
+
+  .service-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .service-btn {
+    background: #F9FAFB; border: 1.5px solid #E5E7EB; border-radius: 12px; padding: 16px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; font-size: 12.5px; font-weight: 700; color: #1B2A6B;
+  }
+  .service-btn:hover, .service-btn.active { border-color: #4F6BF0; background: #EEF1FE; }
+  .service-btn .icon { font-size: 26px; }
+
+  .draft-box { background: #F9FAFB; border-radius: 12px; padding: 16px; font-size: 14px; color: #111827; line-height: 1.6; margin-bottom: 14px; min-height: 90px; }
+
+  .btn { width: 100%; padding: 14px; border-radius: 10px; font-size: 14.5px; font-weight: 700; cursor: pointer; border: none; margin-bottom: 10px; }
+  .btn-copy { background: #4F6BF0; color: white; }
+  .btn-copy:hover { background: #1B2A6B; }
+  .btn-google { background: #072654; color: white; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-google:hover { background: #0a3572; }
+  .copied-msg { text-align: center; font-size: 12.5px; color: #10B981; font-weight: 700; display: none; margin-bottom: 10px; }
+
+  .loading, .error { text-align: center; padding: 40px 20px; color: #6B7280; font-size: 13.5px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="head">
+    <div class="icon">🙏</div>
+    <h1 id="shop-name-head">Loading...</h1>
+    <p>We'd love to hear about your visit!</p>
+  </div>
+
+  <div id="content"><div class="loading">Loading...</div></div>
+</div>
+
+<script type="module">
+import { getDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { db } from "./firebase-config.js";
+
+const params = new URLSearchParams(window.location.search);
+const shopUid = params.get('shop');
+
+let shopName = 'this shop';
+let googleReviewLink = '';
+let selectedDraft = '';
+
+const TEMPLATES = {
+  frame: [
+    "Got a great new frame from {shop} — comfortable fit and the staff helped me pick exactly the right style!",
+    "Really happy with my new frame from {shop}. Good selection and friendly, patient service.",
+  ],
+  lens: [
+    "Excellent lens quality from {shop} — clear vision and the fitting was spot on.",
+    "{shop} sorted out my new lenses quickly and explained everything clearly. Very satisfied!",
+  ],
+  eyetest: [
+    "Had a thorough, professional eye test at {shop}. The optometrist took the time to explain my results.",
+    "Great experience getting my eyes checked at {shop} — quick, accurate, and no waiting around.",
+  ],
+  sunglasses: [
+    "Picked up a nice pair of sunglasses from {shop} — great variety and reasonable prices.",
+    "{shop} has a lovely sunglasses collection, and the staff helped me find a perfect fit.",
+  ],
+  general: [
+    "Had a great experience at {shop} — friendly staff and good service overall.",
+    "Would recommend {shop} to anyone looking for a reliable, friendly optical shop.",
+  ],
+};
+
+async function load() {
+  const content = document.getElementById('content');
+  if (!shopUid) {
+    content.innerHTML = '<div class="error">This review link looks incomplete. Please ask the shop for a fresh QR code.</div>';
+    document.getElementById('shop-name-head').textContent = 'Oops!';
+    return;
+  }
+  try {
+    const snap = await getDoc(doc(db, "reviewPages", shopUid));
+    if (!snap.exists() || !snap.data().googleReviewLink) {
+      content.innerHTML = '<div class="error">This shop hasn\'t set up reviews yet. Please let them know!</div>';
+      document.getElementById('shop-name-head').textContent = 'Not set up yet';
+      return;
+    }
+    shopName = snap.data().shopName || 'this shop';
+    googleReviewLink = snap.data().googleReviewLink;
+    document.getElementById('shop-name-head').textContent = shopName;
+    renderServiceStep();
+  } catch (err) {
+    content.innerHTML = `<div class="error">Something went wrong loading this page. Please try again.</div>`;
+  }
+}
+
+function renderServiceStep() {
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <h3>What did you get done today?</h3>
+      <div class="service-grid">
+        <div class="service-btn" onclick="window.pickService('frame')"><div class="icon">👓</div>Frame</div>
+        <div class="service-btn" onclick="window.pickService('lens')"><div class="icon">🔷</div>Lens</div>
+        <div class="service-btn" onclick="window.pickService('eyetest')"><div class="icon">👁️</div>Eye Test</div>
+        <div class="service-btn" onclick="window.pickService('sunglasses')"><div class="icon">🕶️</div>Sunglasses</div>
+        <div class="service-btn" onclick="window.pickService('general')" style="grid-column: span 2"><div class="icon">⭐</div>Something Else</div>
+      </div>
+    </div>`;
+}
+
+window.pickService = function (key) {
+  const options = TEMPLATES[key] || TEMPLATES.general;
+  selectedDraft = options[Math.floor(Math.random() * options.length)].replace('{shop}', shopName);
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <h3>Here's a draft — feel free to edit it!</h3>
+      <div class="draft-box" id="draft-box" contenteditable="true">${selectedDraft}</div>
+      <div class="copied-msg" id="copied-msg">✅ Copied! Now paste it on the Google page.</div>
+      <button class="btn btn-copy" onclick="window.copyDraft()">📋 Copy Review</button>
+      <button class="btn btn-google" onclick="window.openGoogle()">⭐ Open Google Reviews</button>
+    </div>
+    <div style="text-align:center">
+      <a href="#" onclick="window.backToServices();return false;" style="font-size:12px;color:#6B7280;text-decoration:underline">← Choose a different service</a>
+    </div>`;
+};
+
+window.backToServices = function () { renderServiceStep(); };
+
+window.copyDraft = async function () {
+  const text = document.getElementById('draft-box').innerText;
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (e) {
+    // Fallback for browsers without Clipboard API permission
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+  }
+  document.getElementById('copied-msg').style.display = 'block';
+};
+
+window.openGoogle = function () {
+  window.open(googleReviewLink, '_blank');
+};
+
+load();
+</script>
+
+</body>
+</html>
