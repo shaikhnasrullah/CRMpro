@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FRALEN CRM — Review Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #1B2A6B; --navy-light: #2A3F8F;
+    --accent: #4F6BF0; --accent-soft: #EEF1FE;
+    --gray: #6B7280; --border: #C5D3E8; --green: #10B981;
+  }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #111827; min-height: 100vh; }
+
+  .topbar { background: var(--navy); padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-logo { font-family: 'Montserrat', sans-serif; font-size: 18px; font-weight: 900; color: white; letter-spacing: 3px; }
+  .topbar-logo span { color: #7B93FF; }
+  .back-btn { background: rgba(255,255,255,0.15); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+
+  .page-title { background: white; padding: 14px 20px; font-size: 18px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--accent); }
+  .container { padding: 16px; max-width: 560px; margin: 0 auto; }
+
+  .panel { background: white; border-radius: 12px; border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; }
+  .panel h3 { font-size: 14px; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+  .note-card { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; font-size: 12.5px; color: var(--navy); margin-bottom: 16px; line-height: 1.5; }
+
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12.5px; font-weight: 700; color: #374151; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 14px; outline: none; }
+  .field input:focus { border-color: var(--accent); }
+  .hint { font-size: 11.5px; color: var(--gray); margin-top: 6px; line-height: 1.5; }
+  .hint a { color: var(--accent); }
+
+  .save-btn { width: 100%; padding: 13px; background: var(--navy); color: white; border: none; border-radius: 10px; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+  .save-btn:hover { background: var(--navy-light); }
+  .status-msg { text-align: center; font-size: 13px; margin-top: 12px; min-height: 18px; }
+  .status-msg.ok { color: var(--green); font-weight: 600; }
+  .status-msg.error { color: #DC2626; font-weight: 600; }
+
+  .qr-area { text-align: center; }
+  .qr-area img { width: 220px; height: 220px; border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 14px; }
+  .qr-placeholder { width: 220px; height: 220px; margin: 0 auto 14px; border: 2px dashed var(--border); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--gray); font-size: 12.5px; text-align: center; padding: 16px; }
+  .qr-link-box { background: #F9FAFB; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: var(--navy); word-break: break-all; margin-bottom: 14px; }
+  .qr-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .qr-btns button { flex: 1; padding: 10px; border-radius: 9px; border: none; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .btn-download { background: var(--accent-soft); color: var(--accent); }
+  .btn-preview { background: #D1FAE5; color: #047857; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">FRAL<span>EN</span> CRM</div>
+  <button class="back-btn" onclick="window.location.href='dashboard.html'">← Dashboard</button>
+</div>
+
+<div class="page-title">⭐ Review Assistant</div>
+
+<div class="container">
+  <div class="note-card">
+    Print this QR code at your counter. Customers scan it, pick what they got done, get a ready-made review to copy, and land straight on your Google review page — no app, no login needed on their end.
+  </div>
+
+  <div class="panel">
+    <h3>Your Google Review Link</h3>
+    <div class="field">
+      <label>Google Review Link</label>
+      <input type="url" id="review-link" placeholder="https://g.page/r/..."/>
+      <div class="hint">
+        Find this on Google Maps → your shop listing → "Ask for reviews" / Share button. Or search
+        "<a href="https://support.google.com/business/answer/3474122" target="_blank">get more reviews google business</a>" for the exact steps.
+      </div>
+    </div>
+    <button class="save-btn" onclick="window.saveAndGenerate()">💾 Save &amp; Generate QR Code</button>
+    <div class="status-msg" id="status-msg"></div>
+  </div>
+
+  <div class="panel qr-area" id="qr-panel" style="display:none">
+    <h3 style="text-align:left">Your Review QR Code</h3>
+    <img id="qr-img" src="" alt="Review QR Code"/>
+    <div class="qr-link-box" id="review-page-url"></div>
+    <div class="qr-btns">
+      <button class="btn-preview" onclick="window.previewPage()">👁️ Preview Page</button>
+      <button class="btn-download" onclick="window.downloadQR()">⬇ Download QR</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { requireAuth, profileDoc, tenantDoc, db } from "./firebase-config.js";
+import { doc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+let currentUid = null;
+let shopName = 'FRALEN Optical';
+let reviewPageUrl = '';
+
+requireAuth(async (user) => {
+  currentUid = user.uid;
+  try {
+    const profileSnap = await getDoc(profileDoc(currentUid));
+    if (profileSnap.exists() && profileSnap.data().shopName) shopName = profileSnap.data().shopName;
+  } catch (e) { /* optional */ }
+
+  try {
+    const pageSnap = await getDoc(doc(db, "reviewPages", currentUid));
+    if (pageSnap.exists()) {
+      document.getElementById('review-link').value = pageSnap.data().googleReviewLink || '';
+      if (pageSnap.data().googleReviewLink) renderQR();
+    }
+  } catch (e) { /* first-time setup, nothing saved yet */ }
+});
+
+window.saveAndGenerate = async function () {
+  const link = document.getElementById('review-link').value.trim();
+  const msg = document.getElementById('status-msg');
+
+  if (!link || !link.startsWith('http')) {
+    msg.textContent = 'Please paste a valid Google review link (starts with https://).';
+    msg.className = 'status-msg error';
+    return;
+  }
+
+  try {
+    await setDoc(doc(db, "reviewPages", currentUid), {
+      shopName,
+      googleReviewLink: link,
+      updatedAt: new Date().toISOString(),
+    }, { merge: true });
+
+    msg.textContent = '✅ Saved!';
+    msg.className = 'status-msg ok';
+    renderQR();
+  } catch (e) {
+    msg.textContent = 'Error: ' + e.message;
+    msg.className = 'status-msg error';
+  }
+};
+
+function renderQR() {
+  reviewPageUrl = `${window.location.origin}${window.location.pathname.replace('review-assistant.html', '')}review.html?shop=${currentUid}`;
+  document.getElementById('review-page-url').textContent = reviewPageUrl;
+  document.getElementById('qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(reviewPageUrl)}`;
+  document.getElementById('qr-panel').style.display = 'block';
+}
+
+window.previewPage = function () {
+  window.open(reviewPageUrl, '_blank');
+};
+
+window.downloadQR = function () {
+  const a = document.createElement('a');
+  a.href = `https://api.qrserver.com/v1/create-qr-code/?size=600x600&data=${encodeURIComponent(reviewPageUrl)}`;
+  a.download = 'FRALEN_Review_QR.png';
+  a.target = '_blank';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+</script>
+
+</body>
+</html>
