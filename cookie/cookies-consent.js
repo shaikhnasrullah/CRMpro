@@ -13,21 +13,21 @@
 
   var css = document.createElement("style");
   css.textContent =
-    "#fcc{position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#fff;color:#1d2433;font:16px/1.5 system-ui,sans-serif;padding:1.25rem 1.25rem 1.5rem;box-shadow:0 -4px 24px rgba(15,31,61,.25);border-top:4px solid #f5a623}" +
+    "#fcc{position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#fff;color:#1d2433;font:14px/1.4 system-ui,sans-serif;padding:.7rem .9rem .8rem;box-shadow:0 -2px 14px rgba(15,31,61,.25);border-top:3px solid #f5a623;max-height:40vh;overflow-y:auto}" +
     "#fcc .in{max-width:720px;margin:0 auto}" +
-    "#fcc h2{margin:0 0 .5rem;font-size:1.3rem;color:#0f1f3d}" +
-    "#fcc p{margin:0 0 1rem;font-size:.95rem}" +
+    "#fcc h2{margin:0 0 .25rem;font-size:1rem;color:#0f1f3d}" +
+    "#fcc p{margin:0 0 .6rem;font-size:.8rem}" +
     "#fcc a{color:#1b3157}" +
-    "#fcc .btns{display:flex;flex-direction:column;gap:.6rem}" +
-    "#fcc button{font:600 1rem system-ui,sans-serif;padding:.8rem 1rem;border-radius:6px;cursor:pointer;border:2px solid #0f1f3d}" +
+    "#fcc .btns{display:flex;gap:.4rem}" +
+    "#fcc button{flex:1;font:600 .8rem system-ui,sans-serif;padding:.5rem .3rem;border-radius:5px;cursor:pointer;border:2px solid #0f1f3d}" +
     "#fcc .pri{background:#0f1f3d;color:#fff}" +
     "#fcc .sec{background:#fff;color:#0f1f3d}" +
     "#fcc button:focus-visible{outline:3px solid #f5a623;outline-offset:2px}" +
-    "#fcc .opts{display:none;margin:0 0 1rem;border:1px solid #e1e5ee;border-radius:6px}" +
-    "#fcc .opts label{display:flex;gap:.7rem;align-items:flex-start;padding:.75rem;font-size:.92rem}" +
+    "#fcc .opts{display:none;margin:0 0 .6rem;border:1px solid #e1e5ee;border-radius:5px}" +
+    "#fcc .opts label{display:flex;gap:.5rem;align-items:flex-start;padding:.45rem .6rem;font-size:.8rem}" +
     "#fcc .opts label+label{border-top:1px solid #e1e5ee}" +
-    "#fcc input{margin-top:.3rem;width:1.1rem;height:1.1rem;accent-color:#0f1f3d}" +
-    "@media(min-width:640px){#fcc .btns{flex-direction:row}#fcc button{flex:1}}";
+    "#fcc input{margin-top:.15rem;width:1rem;height:1rem;accent-color:#0f1f3d}" +
+    "@media(min-width:640px){#fcc{font-size:15px;padding:.9rem 1.2rem}#fcc p{font-size:.9rem}#fcc button{font-size:.9rem;padding:.6rem}}";
   document.head.appendChild(css);
 
   var box = document.createElement("div");
@@ -37,7 +37,7 @@
   box.innerHTML =
     '<div class="in">' +
     "<h2>We value your privacy</h2>" +
-    "<p>We use essential cookies to keep you logged in, and optional analytics cookies to understand how FRALEN CRM is used. " +
+    "<p>We use essential cookies for login, and optional analytics cookies to improve FRALEN CRM. " +
     'Read our <a href="' + POLICY + '">Privacy Policy</a>.</p>' +
     '<div class="opts" id="fccOpts">' +
     '<label><input type="checkbox" checked disabled><span><strong>Essential</strong><br>Login and security. Always on.</span></label>' +
@@ -70,7 +70,4 @@
       document.getElementById("fccOpts").style.display = "block";
       this.textContent = "Save choices";
     } else {
-      save(document.getElementById("fccAn").checked);
-    }
-  };
-})();
+      save(document.getEl
